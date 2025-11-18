@@ -37,7 +37,7 @@
 - **Runtime:** `Node`
 - **Build Command:** 
   ```bash
-  npm install && cd server && npm install && cd .. && npm run build
+  npm install && cd server && npm install && cd .. && NODE_OPTIONS=--openssl-legacy-provider npm run build
   ```
 - **Start Command:**
   ```bash
