@@ -4,7 +4,7 @@
 
 **✅ ВСЁ ПРАВИЛЬНО!**
 
-- **Build Command:** `npm install && cd server && npm install && cd .. && NODE_OPTIONS=--openssl-legacy-provider npm run build` ✅
+- **Build Command:** `npm install --include=dev && cd server && npm install && cd .. && NODE_OPTIONS=--openssl-legacy-provider npm run build` ✅
 - **Start Command:** `cd server && node server.js` ✅
 
 Эти команды:

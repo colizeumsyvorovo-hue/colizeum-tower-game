@@ -1,19 +1,19 @@
 # 🔧 Исправление ошибки деплоя на Render
 
-## ❌ Ошибка: "webpack-cli must be installed"
+## ❌ Ошибка: "Can't resolve 'babel-loader'"
 
-Эта ошибка означает, что `webpack-cli` не установлен, потому что он был в `devDependencies`, а на Render в production они могут не устанавливаться.
+Эта ошибка означает, что `babel-loader` и другие `devDependencies` не устанавливаются на Render в production режиме.
 
-## ✅ Решение: Переместить webpack-cli в dependencies
+## ✅ Решение: Установить devDependencies при сборке
 
-**Исправлено в package.json:** `webpack` и `webpack-cli` теперь в `dependencies`, чтобы они устанавливались на Render.
+**Исправлено:** Команда сборки теперь использует `npm install --include=dev` для установки всех зависимостей, включая devDependencies, которые нужны для сборки.
 
 ## 📋 Обновить Build Command в Render
 
 ### В настройках Render измените Build Command на:
 
 ```bash
-npm install && cd server && npm install && cd .. && NODE_OPTIONS=--openssl-legacy-provider npm run build
+npm install --include=dev && cd server && npm install && cd .. && NODE_OPTIONS=--openssl-legacy-provider npm run build
 ```
 
 **Или более простой вариант (без сборки frontend):**

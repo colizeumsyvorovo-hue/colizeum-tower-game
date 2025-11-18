@@ -2,7 +2,7 @@ services:
   - type: web
     name: colizeum-tower-game
     env: node
-    buildCommand: npm install && cd server && npm install && cd .. && NODE_OPTIONS=--openssl-legacy-provider npm run build
+    buildCommand: npm install --include=dev && cd server && npm install && cd .. && NODE_OPTIONS=--openssl-legacy-provider npm run build
     startCommand: cd server && node server.js
     envVars:
       - key: NODE_ENV
