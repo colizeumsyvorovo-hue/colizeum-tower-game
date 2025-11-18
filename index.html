@@ -1566,14 +1566,24 @@
     }
 
     async function showGameModeSelection() {
-      // Не показываем меню, если игра запущена ИЛИ canvas виден (игра запускается)
+      console.log('showGameModeSelection called, gameStart:', gameStart);
+      
+      // Если игра запущена, но мы явно хотим показать меню (например, из exitToMenu),
+      // то сбрасываем gameStart
+      if (gameStart) {
+        console.log('Game is running, but showing menu anyway (forced)');
+        gameStart = false;
+      }
+      
+      // Проверяем, виден ли canvas (игра запускается)
       const canvasVisible = !$('#canvas-container').hasClass('hide');
-      if (gameStart || canvasVisible) {
-        console.log('Game is running or starting, not showing menu. gameStart:', gameStart, 'canvas visible:', canvasVisible);
+      // Не блокируем показ меню, если gameStart уже сброшен
+      if (canvasVisible && gameStart) {
+        console.log('Game is starting, not showing menu. gameStart:', gameStart, 'canvas visible:', canvasVisible);
         return;
       }
       
-      console.log('showGameModeSelection called');
+      console.log('Showing game mode selection');
       
       // Скрываем все остальные экраны
       $('#mainMenu').addClass('hide').css('display', 'none');
