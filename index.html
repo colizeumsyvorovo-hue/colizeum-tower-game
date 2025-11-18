@@ -1067,7 +1067,7 @@
     let normalCount = 0;
     let currentBonuses = 0; // Текущие бонусы в игре
     let lastPerfectCount = 0;
-    let previousPerfectCount = 0; // Предыдущее значение PERFECT_COUNT для отслеживания изменений // Последнее значение PERFECT_COUNT для отслеживания изменений
+    let previousPerfectCount = 0; // Предыдущее значение PERFECT_COUNT для отслеживания изменений
     let domReady = false;
     let canvasReady = false;
     let loadFinish = false;
@@ -2086,8 +2086,8 @@
         // Инициализируем счетчик бонусов в игре (всегда 0 при старте)
         if (game && game.setVariable) {
           currentBonuses = 0; // Сбрасываем бонусы при старте
+          previousPerfectCount = 0; // Сбрасываем отслеживание perfect блоков
           game.setVariable('GAME_BONUSES', 0);
-          console.log('Game started, bonuses initialized to 0');
         }
         
         // Предотвращаем возврат в меню
