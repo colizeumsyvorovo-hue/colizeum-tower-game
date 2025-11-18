@@ -1,0 +1,18 @@
+services:
+  - type: web
+    name: colizeum-tower-game
+    env: node
+    buildCommand: npm install && cd server && npm install && cd .. && npm run build
+    startCommand: cd server && node server.js
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 3000
+      - key: DATABASE_PATH
+        value: ./server/database/game.db
+      # Добавьте эти переменные в настройках Render:
+      # TELEGRAM_BOT_TOKEN=your_token
+      # JWT_SECRET=your_secret
+      # FRONTEND_URL=https://your-app.onrender.com
+
