@@ -1112,6 +1112,8 @@
               authToken = data.token;
               currentUser = data.user;
               localStorage.setItem('authToken', authToken);
+              // Загружаем полные данные пользователя из базы данных
+              await loadUserInfo();
               updateUI();
               console.log('Authentication successful, user:', currentUser);
             } else {
