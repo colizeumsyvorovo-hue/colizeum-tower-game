@@ -1722,32 +1722,27 @@
               // Определяем тип блока по изменению PERFECT_COUNT
               // Если PERFECT_COUNT стал > 0 (был 0), то это perfect блок
               // Если PERFECT_COUNT стал 0 (был > 0), то это обычный блок
-              // Если PERFECT_COUNT увеличился (> previousPerfectCount), то это продолжение серии perfect
               
-              const isNewBlock = (previousPerfectCount === 0 && currentPerfectCount > 0) || 
-                                 (previousPerfectCount > 0 && currentPerfectCount === 0) ||
-                                 (currentPerfectCount > previousPerfectCount);
-              
-              if (isNewBlock) {
-                if (currentPerfectCount > 0 && previousPerfectCount === 0) {
-                  // Новый perfect блок (начало серии)
-                  perfectCount++;
-                  currentBonuses += 25;
-                  if (game.setVariable) {
-                    game.setVariable('GAME_BONUSES', currentBonuses);
-                  }
-                } else if (currentPerfectCount === 0 && previousPerfectCount > 0) {
-                  // Обычный блок (конец серии perfect)
-                  normalCount++;
-                  currentBonuses += 10;
-                  if (game.setVariable) {
-                    game.setVariable('GAME_BONUSES', currentBonuses);
-                  }
-                } else if (currentPerfectCount > previousPerfectCount) {
-                  // Продолжение серии perfect - не считаем как новый блок
-                  // Бонусы уже начислены за первый perfect блок в серии
+              if (currentPerfectCount > 0 && previousPerfectCount === 0) {
+                // Новый perfect блок (начало серии)
+                perfectCount++;
+                currentBonuses += 25;
+                if (game.setVariable) {
+                  game.setVariable('GAME_BONUSES', currentBonuses);
                 }
-                
+                previousPerfectCount = currentPerfectCount;
+                lastPerfectCount = currentPerfectCount;
+              } else if (currentPerfectCount === 0 && previousPerfectCount > 0) {
+                // Обычный блок (конец серии perfect)
+                normalCount++;
+                currentBonuses += 10;
+                if (game.setVariable) {
+                  game.setVariable('GAME_BONUSES', currentBonuses);
+                }
+                previousPerfectCount = currentPerfectCount;
+                lastPerfectCount = 0;
+              } else if (currentPerfectCount > previousPerfectCount) {
+                // Продолжение серии perfect - обновляем previousPerfectCount, но не начисляем бонусы
                 previousPerfectCount = currentPerfectCount;
                 lastPerfectCount = currentPerfectCount;
               }
