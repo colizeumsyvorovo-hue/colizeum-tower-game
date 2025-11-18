@@ -1872,20 +1872,50 @@
     }
 
     function exitToMenu() {
-      if (!game) return;
+      console.log('exitToMenu called, gameStart:', gameStart, 'game exists:', !!game);
 
-      // Останавливаем игру
+      // Останавливаем игру СРАЗУ, чтобы showGameModeSelection мог показать меню
       gameStart = false;
-      if (game.pauseBgm) {
-        game.pauseBgm();
+      
+      if (game) {
+        // Останавливаем игровой цикл
+        if (game.setVariable) {
+          try {
+            game.setVariable('GAME_START_NOW', false);
+          } catch (e) {
+            console.log('Error setting GAME_START_NOW:', e);
+          }
+        }
+        
+        // Останавливаем звук
+        if (game.pauseBgm) {
+          try {
+            game.pauseBgm();
+          } catch (e) {
+            console.log('Error pausing BGM:', e);
+          }
+        }
+        
+        // Останавливаем игру, если она на паузе
+        if (game.togglePaused && game.isPaused && game.isPaused()) {
+          try {
+            game.togglePaused();
+          } catch (e) {
+            console.log('Error toggling pause:', e);
+          }
+        }
       }
 
       // Скрываем модальное окно паузы и кнопку паузы
-      $('#pauseModal').addClass('hide');
+      $('#pauseModal').addClass('hide').css('display', 'none');
+      $('#gameOverModal').addClass('hide').css('display', 'none');
       $('#canvas-container').addClass('hide');
+      $('#canvas').addClass('hide');
       $('#btnPause').addClass('hide');
 
       // Показываем главное меню (экран выбора режима)
+      // Сбрасываем gameStart перед вызовом, чтобы showGameModeSelection не блокировался
+      console.log('Calling showGameModeSelection, gameStart:', gameStart);
       showGameModeSelection();
     }
 
