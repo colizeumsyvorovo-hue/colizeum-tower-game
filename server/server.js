@@ -23,7 +23,16 @@ app.use(express.json());
 app.use(express.static(path.join(__dirname, '../')));
 
 // Инициализация Telegram бота
-require('./telegram');
+const bot = require('./telegram');
+
+// Webhook endpoint для Telegram бота
+app.post('/webhook', express.raw({ type: 'application/json' }), (req, res) => {
+  if (bot) {
+    bot.handleUpdate(req.body, res);
+  } else {
+    res.sendStatus(200);
+  }
+});
 
 // API: Авторизация через Telegram Web App
 app.post('/api/auth/telegram', async (req, res) => {

@@ -105,17 +105,26 @@ if (config.telegramBotToken) {
     );
   });
 
-  // Запуск бота
-  bot.launch().then(() => {
-    console.log('✅ Telegram bot initialized and started successfully');
-    console.log(`🤖 Bot is ready! Use /start command in Telegram`);
-  }).catch((err) => {
-    console.error('❌ Error starting bot:', err);
-    console.error('Error details:', err.message);
-    if (err.response) {
-      console.error('Telegram API response:', err.response);
-    }
-  });
+  // Проверяем, используется ли webhook
+  const useWebhook = config.telegramWebhookUrl && !config.telegramWebhookUrl.includes('localhost');
+  
+  if (useWebhook) {
+    // Используем webhook для production
+    console.log('✅ Telegram bot configured for webhook mode');
+    console.log(`🤖 Webhook URL: ${config.telegramWebhookUrl}`);
+  } else {
+    // Используем polling для разработки
+    bot.launch().then(() => {
+      console.log('✅ Telegram bot initialized and started successfully (polling mode)');
+      console.log(`🤖 Bot is ready! Use /start command in Telegram`);
+    }).catch((err) => {
+      console.error('❌ Error starting bot:', err);
+      console.error('Error details:', err.message);
+      if (err.response) {
+        console.error('Telegram API response:', err.response);
+      }
+    });
+  }
 
   // Обработка ошибок бота
   bot.catch((err, ctx) => {
