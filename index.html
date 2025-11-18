@@ -1138,6 +1138,8 @@
               authToken = data.token;
               currentUser = data.user;
               localStorage.setItem('authToken', authToken);
+              // Загружаем реальные данные пользователя из базы данных
+              await loadUserInfo();
               updateUI();
             }
           } catch (e) {
@@ -1707,6 +1709,9 @@
     soundOn: true,
         // В обычной игре жизни бесконечные, в игре за бонусы - 3 жизни
         infiniteLives: currentGameType === 'normal',
+        // Очки: 10 за обычный блок, 25 за perfect блок
+        successScore: 10,
+        perfectScore: 25,
     setGameScore: function (s) {
           // Оптимизация: проверяем только если счет изменился
           if (score === s) return;
