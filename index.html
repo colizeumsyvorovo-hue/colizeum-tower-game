@@ -1714,8 +1714,9 @@
           const oldScore = score;
           score = s;
           
-          // Отслеживаем бонусы только в обычной игре и только если счет увеличился
-          if (currentGameType === 'normal' && game && game.getVariable && score > oldScore && successCount > (perfectCount + normalCount)) {
+          // Отслеживаем блоки для обоих режимов (нужно для подсчета perfectCount/normalCount)
+          // Но начисляем бонусы только в обычной игре
+          if (game && game.getVariable && score > oldScore && successCount > (perfectCount + normalCount)) {
             try {
               const currentPerfectCount = game.getVariable('PERFECT_COUNT', 0);
               
@@ -1726,18 +1727,24 @@
               if (currentPerfectCount > 0 && previousPerfectCount === 0) {
                 // Новый perfect блок (начало серии)
                 perfectCount++;
-                currentBonuses += 25;
-                if (game.setVariable) {
-                  game.setVariable('GAME_BONUSES', currentBonuses);
+                // Начисляем бонусы только в обычной игре
+                if (currentGameType === 'normal') {
+                  currentBonuses += 25;
+                  if (game.setVariable) {
+                    game.setVariable('GAME_BONUSES', currentBonuses);
+                  }
                 }
                 previousPerfectCount = currentPerfectCount;
                 lastPerfectCount = currentPerfectCount;
               } else if (currentPerfectCount === 0 && previousPerfectCount > 0) {
                 // Обычный блок (конец серии perfect)
                 normalCount++;
-                currentBonuses += 10;
-                if (game.setVariable) {
-                  game.setVariable('GAME_BONUSES', currentBonuses);
+                // Начисляем бонусы только в обычной игре
+                if (currentGameType === 'normal') {
+                  currentBonuses += 10;
+                  if (game.setVariable) {
+                    game.setVariable('GAME_BONUSES', currentBonuses);
+                  }
                 }
                 previousPerfectCount = currentPerfectCount;
                 lastPerfectCount = 0;
@@ -1860,16 +1867,27 @@
     }
 
     function pauseGame() {
-      if (!game || !gameStart) return;
+      console.log('pauseGame called, game:', !!game, 'gameStart:', gameStart, 'gameType:', currentGameType);
+      
+      if (!game || !gameStart) {
+        console.log('Cannot pause: game not ready or not started');
+        return;
+      }
 
       // Ставим игру на паузу
       if (game.togglePaused) {
-        game.togglePaused();
+        try {
+          game.togglePaused();
+        } catch (e) {
+          console.error('Error toggling pause:', e);
+        }
       }
 
       // Показываем модальное окно паузы
-      $('#pauseModal').removeClass('hide');
+      $('#pauseModal').removeClass('hide').css('display', 'flex');
       $('#canvas-container').addClass('hide');
+      
+      console.log('Game paused, modal shown');
     }
 
     function resumeGame() {
