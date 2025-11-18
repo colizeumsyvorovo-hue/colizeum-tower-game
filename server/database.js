@@ -65,7 +65,7 @@ const createUser = (telegramUser) => {
     db.run(
       'INSERT INTO users (telegram_id, username, first_name, last_name) VALUES (?, ?, ?, ?)',
       [telegramUser.id, telegramUser.username || null, telegramUser.first_name || null, telegramUser.last_name || null],
-      function(err) {
+      function (err) {
         if (err) reject(err);
         else resolve(this.lastID);
       }
@@ -97,7 +97,7 @@ const saveGame = (userId, gameType, score, floors, bonusesEarned = 0) => {
     db.run(
       'INSERT INTO games (user_id, game_type, score, floors, bonuses_earned) VALUES (?, ?, ?, ?, ?)',
       [userId, gameType, score, floors, bonusesEarned],
-      function(err) {
+      function (err) {
         if (err) reject(err);
         else resolve(this.lastID);
       }
@@ -151,7 +151,7 @@ const recordBonusAttempt = (userId) => {
     db.run(
       'INSERT OR REPLACE INTO bonus_attempts (user_id, last_attempt) VALUES (?, CURRENT_TIMESTAMP)',
       [userId],
-      function(err) {
+      function (err) {
         if (err) reject(err);
         else resolve();
       }
