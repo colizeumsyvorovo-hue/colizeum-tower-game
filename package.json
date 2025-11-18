@@ -1,0 +1,32 @@
+{
+  "name": "colizeum-tower-game",
+  "version": "1.0.0",
+  "description": "Tower Building Game for Colizeum with Telegram integration and bonus system",
+  "scripts": {
+    "install-server": "cd server && npm install",
+    "install-game": "npm install",
+    "build": "cross-env NODE_OPTIONS=--openssl-legacy-provider webpack --mode production",
+    "start": "cd server && node server.js",
+    "dev": "cd server && nodemon server.js"
+  },
+  "dependencies": {
+    "cooljs": "^1.0.2"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.0.0-beta.42",
+    "@babel/preset-env": "^7.0.0-beta.42",
+    "babel-loader": "^8.0.0-beta",
+    "cross-env": "^10.1.0",
+    "webpack": "^4.0.1",
+    "webpack-cli": "^3.1.1"
+  },
+  "keywords": [
+    "game",
+    "tower",
+    "telegram",
+    "colizeum",
+    "new-year"
+  ],
+  "author": "Colizeum",
+  "license": "MIT"
+}

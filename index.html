@@ -1,0 +1,2085 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,minimal-ui,viewport-fit=cover">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>Colizeum Tower Game 🎄</title>
+  <link rel="icon" type="image/x-icon" href="./assets/favicon.png">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box
+    }
+
+    img {
+      width: 100%
+    }
+
+    html {
+      background: #fff;
+      height: 100%
+    }
+
+    body {
+      font-family: "Helvetica Neue", Arial, Helvetica, sans-serif;
+      margin: 0 auto;
+      text-align: center;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      position: relative;
+      overflow: hidden;
+    }
+
+    body::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: url(assets/main-bg.png) center/cover;
+      opacity: 0.3;
+      z-index: 0;
+    }
+
+    body>* {
+      position: relative;
+      z-index: 1;
+    }
+
+    #canvas {
+      position: fixed;
+      left: 0;
+      top: 0;
+      right: 0;
+      bottom: 0;
+      margin: auto;
+      z-index: 10
+    }
+
+    a {
+      text-decoration: none
+    }
+
+    li,
+    ol,
+    ul {
+      list-style-type: none;
+      padding: 0;
+      margin: 0
+    }
+
+    .hide {
+      display: none
+    }
+
+    .clear {
+      clear: both
+    }
+
+    /* Loading */
+    .loading {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      height: 100%;
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+      position: fixed;
+      top: 0;
+      left: 0;
+      z-index: 9999;
+    }
+
+    .loading.hide {
+      display: none !important;
+    }
+
+    .loading .main {
+      width: 80%;
+      max-width: 400px
+    }
+
+    .loading .title {
+      font-size: 2rem;
+      margin-bottom: 1rem;
+      font-weight: bold
+    }
+
+    .loading .text {
+      font-size: 1rem;
+      margin-top: 1rem
+    }
+
+    .loading .bar {
+      height: 20px;
+      width: 100%;
+      border: 3px solid #fff;
+      border-radius: 10px;
+      margin: 1rem 0;
+      background: rgba(255, 255, 255, 0.2);
+    }
+
+    .loading .bar .percent {
+      height: 100%;
+      width: 0;
+      background: linear-gradient(90deg, #ffd700, #ff6b6b);
+      border-radius: 7px;
+      transition: width 0.3s;
+    }
+
+    /* Main Menu */
+    .main-menu {
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem;
+      color: #fff;
+      position: relative;
+      z-index: 100;
+    }
+
+    .profile-screen {
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      padding: 2rem;
+      color: #fff;
+      position: relative;
+      z-index: 100;
+      overflow-y: auto;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    }
+
+    #profileScreen {
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      padding: 2rem;
+      color: #fff;
+      position: fixed !important;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      width: 100%;
+      z-index: 10000 !important;
+      overflow-y: auto;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    }
+
+    .main-menu.hide {
+      display: none !important;
+    }
+
+    .game-mode-selection.hide {
+      display: none !important;
+    }
+
+    #profileScreen.hide {
+      display: none !important;
+    }
+
+    #profileScreen:not(.hide) {
+      display: flex !important;
+      height: 100vh !important;
+    }
+
+    #mainMenu:not(.hide) {
+      display: flex !important;
+    }
+
+    .main-menu h1 {
+      font-size: 3rem;
+      margin-bottom: 1rem;
+      text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+      background: linear-gradient(45deg, #ffd700, #ff6b6b);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .main-menu .subtitle {
+      font-size: 1.2rem;
+      margin-bottom: 3rem;
+      opacity: 0.9;
+    }
+
+    .menu-buttons {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+      width: 100%;
+      max-width: 300px;
+    }
+
+    .btn {
+      padding: 1rem 2rem;
+      border: none;
+      border-radius: 15px;
+      font-size: 1.1rem;
+      font-weight: bold;
+      cursor: pointer;
+      transition: all 0.3s;
+      color: #fff;
+      text-transform: uppercase;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+    }
+
+    .btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3)
+    }
+
+    .btn:active {
+      transform: translateY(0)
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    }
+
+    .btn-success {
+      background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+    }
+
+    .btn-info {
+      background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+    }
+
+    .btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    /* Profile */
+    .profile {
+      background: rgba(255, 255, 255, 0.98);
+      border-radius: 25px;
+      padding: 2.5rem;
+      margin: 1.5rem auto;
+      max-width: 450px;
+      width: 100%;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(255, 255, 255, 0.1);
+      display: block !important;
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+
+    .profile.hide {
+      display: none !important;
+    }
+
+    .profile-header {
+      display: flex;
+      align-items: center;
+      gap: 1.5rem;
+      margin-bottom: 2rem;
+      padding-bottom: 1.5rem;
+      border-bottom: 2px solid rgba(102, 126, 234, 0.2);
+      position: relative;
+    }
+
+    .profile-header::after {
+      content: '';
+      position: absolute;
+      bottom: -2px;
+      left: 0;
+      width: 60px;
+      height: 3px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      border-radius: 2px;
+    }
+
+    .profile-avatar {
+      width: 80px;
+      height: 80px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 2rem;
+      color: #fff;
+      font-weight: bold;
+      box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
+      border: 4px solid rgba(255, 255, 255, 0.3);
+      transition: transform 0.3s;
+    }
+
+    .profile-avatar:hover {
+      transform: scale(1.05);
+    }
+
+    .profile-info h3 {
+      margin: 0;
+      color: #333;
+      font-size: 1.5rem;
+      font-weight: 700;
+      margin-bottom: 0.3rem;
+    }
+
+    .profile-info p {
+      margin: 0;
+      color: #666;
+      font-size: 1rem;
+      opacity: 0.8;
+    }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 1rem;
+      margin-top: 1.5rem;
+    }
+
+    .stat-card {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: #fff;
+      padding: 1.5rem 1rem;
+      border-radius: 15px;
+      text-align: center;
+      box-shadow: 0 8px 20px rgba(102, 126, 234, 0.3);
+      transition: transform 0.3s, box-shadow 0.3s;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .stat-card::before {
+      content: '';
+      position: absolute;
+      top: -50%;
+      left: -50%;
+      width: 200%;
+      height: 200%;
+      background: radial-gradient(circle, rgba(255, 255, 255, 0.1) 0%, transparent 70%);
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+
+    .stat-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 12px 30px rgba(102, 126, 234, 0.4);
+    }
+
+    .stat-card:hover::before {
+      opacity: 1;
+    }
+
+    .stat-card .value {
+      font-size: 2rem;
+      font-weight: bold;
+      margin-bottom: 0.5rem;
+      text-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+    }
+
+    .stat-card .label {
+      font-size: 0.85rem;
+      opacity: 0.95;
+      font-weight: 500;
+      letter-spacing: 0.5px;
+    }
+
+    .leaderboard-section {
+      width: 100%;
+    }
+
+    #leaderboardList::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    #leaderboardList::-webkit-scrollbar-track {
+      background: rgba(0, 0, 0, 0.1);
+      border-radius: 10px;
+    }
+
+    #leaderboardList::-webkit-scrollbar-thumb {
+      background: rgba(102, 126, 234, 0.5);
+      border-radius: 10px;
+    }
+
+    #leaderboardList::-webkit-scrollbar-thumb:hover {
+      background: rgba(102, 126, 234, 0.7);
+    }
+
+    .bonus-info {
+      background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+      color: #fff;
+      padding: 1.5rem;
+      border-radius: 15px;
+      margin-top: 1.5rem;
+      text-align: center;
+      box-shadow: 0 8px 20px rgba(245, 87, 108, 0.3);
+      transition: transform 0.3s;
+    }
+
+    .bonus-info:hover {
+      transform: translateY(-3px);
+    }
+
+    .bonus-info.available {
+      background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+      box-shadow: 0 8px 20px rgba(17, 153, 142, 0.3);
+    }
+
+    .bonus-info > div:first-child {
+      font-size: 1.2rem;
+      font-weight: bold;
+      margin-bottom: 0.5rem;
+    }
+
+    .bonus-info .countdown {
+      font-size: 1rem;
+      opacity: 0.95;
+    }
+
+    .bonus-history-section {
+      width: 100%;
+      margin-top: 2rem;
+    }
+
+    .bonus-history-section h3 {
+      color: #333;
+      margin-bottom: 1rem;
+      text-align: center;
+      text-shadow: none;
+      font-size: 1.3rem;
+      font-weight: 700;
+    }
+
+    .leaderboard-section h3 {
+      color: #333;
+      margin-bottom: 1rem;
+      text-align: center;
+      text-shadow: none;
+      font-size: 1.3rem;
+      font-weight: 700;
+    }
+
+    #bonusHistoryList {
+      background: rgba(255, 255, 255, 0.98);
+      border-radius: 15px;
+      padding: 1rem;
+      max-height: 300px;
+      overflow-y: auto;
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+    }
+
+    #bonusHistoryList::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    #bonusHistoryList::-webkit-scrollbar-track {
+      background: rgba(0, 0, 0, 0.1);
+      border-radius: 10px;
+    }
+
+    #bonusHistoryList::-webkit-scrollbar-thumb {
+      background: rgba(102, 126, 234, 0.5);
+      border-radius: 10px;
+    }
+
+    #bonusHistoryList::-webkit-scrollbar-thumb:hover {
+      background: rgba(102, 126, 234, 0.7);
+    }
+
+    .bonus-info .countdown {
+      font-size: 0.9rem;
+      margin-top: 0.5rem;
+      opacity: 0.9;
+    }
+
+    /* Game Mode Selection */
+    .game-mode-selection {
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem;
+      color: #fff;
+    }
+
+    .mode-cards {
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+      width: 100%;
+      max-width: 400px;
+      margin-top: 2rem;
+    }
+
+    .mode-card {
+      background: rgba(255, 255, 255, 0.95);
+      border-radius: 20px;
+      padding: 2rem;
+      cursor: pointer;
+      transition: all 0.3s;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+    }
+
+    .mode-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+    }
+
+    .mode-card:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .mode-card h3 {
+      color: #333;
+      margin-bottom: 0.5rem;
+      font-size: 1.5rem;
+    }
+
+    .mode-card p {
+      color: #666;
+      margin-bottom: 1rem;
+    }
+
+    .mode-card .badge {
+      display: inline-block;
+      padding: 0.3rem 0.8rem;
+      border-radius: 20px;
+      font-size: 0.8rem;
+      font-weight: bold;
+      margin-top: 0.5rem;
+    }
+
+    .badge-success {
+      background: #38ef7d;
+      color: #fff;
+    }
+
+    .badge-warning {
+      background: #ffd700;
+      color: #333;
+    }
+
+    /* Modal */
+    .modal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.7);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+    }
+
+    .modal-content {
+      background: #fff;
+      border-radius: 20px;
+      padding: 2rem;
+      max-width: 400px;
+      width: 90%;
+      text-align: center;
+    }
+
+    .modal-content h2 {
+      margin-bottom: 1rem;
+      color: #333;
+    }
+
+    .modal-content p {
+      margin-bottom: 1.5rem;
+      color: #666;
+    }
+
+    .modal-buttons {
+      display: flex;
+      gap: 1rem;
+      justify-content: center;
+    }
+
+    /* Game Over Modal */
+    .game-over-modal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.8);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 10000 !important;
+      pointer-events: auto;
+    }
+
+    .game-over-modal.hide {
+      display: none;
+    }
+
+    .game-over-content {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      border-radius: 20px;
+      padding: 2rem;
+      max-width: 400px;
+      width: 90%;
+      text-align: center;
+      color: #fff;
+      position: relative;
+      z-index: 1001;
+      pointer-events: auto;
+    }
+
+    .game-over-content .btn {
+      pointer-events: auto !important;
+      cursor: pointer;
+      z-index: 10002;
+      position: relative;
+      touch-action: manipulation;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .game-over-modal * {
+      pointer-events: auto;
+    }
+
+    .game-over-modal.hide * {
+      pointer-events: none;
+    }
+
+    .game-over-content h2 {
+      font-size: 2rem;
+      margin-bottom: 1rem;
+    }
+
+    .game-over-content .score {
+      font-size: 3rem;
+      font-weight: bold;
+      margin: 1rem 0;
+      color: #ffd700;
+    }
+
+    .game-over-content .bonus-earned {
+      background: rgba(255, 255, 255, 0.2);
+      padding: 1rem;
+      border-radius: 10px;
+      margin: 1rem 0;
+      font-size: 1.2rem;
+    }
+
+    /* Canvas Container */
+    #canvas-container {
+      position: fixed;
+      left: 0;
+      top: 0;
+      right: 0;
+      bottom: 0;
+      margin: auto;
+      z-index: 1;
+    }
+
+    /* Pause Button - в левом верхнем углу canvas */
+    .pause-button {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      width: 45px;
+      height: 45px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, rgba(102, 126, 234, 0.9) 0%, rgba(118, 75, 162, 0.9) 100%);
+      border: 2px solid rgba(255, 255, 255, 0.8);
+      color: #fff;
+      font-size: 1.3rem;
+      cursor: pointer;
+      z-index: 10000;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: transform 0.2s, opacity 0.2s;
+      pointer-events: auto;
+      backdrop-filter: blur(5px);
+    }
+
+    .pause-button:active {
+      transform: scale(0.95);
+    }
+
+    .pause-button:hover {
+      transform: scale(1.1);
+    }
+
+    .pause-button.hide {
+      display: none;
+    }
+
+    @font-face {
+      font-family: wenxue;
+      src: url(assets/wenxue.eot);
+      src: url(assets/wenxue.eot), url(assets/wenxue.woff), url(assets/wenxue.ttf), url(assets/wenxue.svg)
+    }
+
+    .font-wenxue {
+      font-family: wenxue
+    }
+
+    /* Мобильная адаптация */
+    @media (max-width: 768px) {
+      body {
+        font-size: 14px;
+      }
+
+      .main-menu {
+        padding: 1rem;
+      }
+
+      .main-menu h1 {
+        font-size: 2rem;
+        margin-bottom: 0.5rem;
+      }
+
+      .main-menu .subtitle {
+        font-size: 0.9rem;
+        margin-bottom: 1.5rem;
+      }
+
+      .menu-buttons {
+        max-width: 100%;
+        padding: 0 1rem;
+        gap: 0.8rem;
+      }
+
+      .btn {
+        font-size: 1rem;
+        padding: 1rem 1.5rem;
+        min-height: 48px; /* Минимальный размер для удобного нажатия на мобильных */
+        touch-action: manipulation; /* Убирает задержку на мобильных */
+      }
+
+      .game-mode-selection {
+        padding: 1rem;
+      }
+
+      .game-mode-selection h1 {
+        font-size: 1.5rem;
+        margin-bottom: 1rem;
+      }
+
+      .mode-cards {
+        gap: 1rem;
+        max-width: 100%;
+        padding: 0 0.5rem;
+      }
+
+      .mode-card {
+        padding: 1.2rem;
+        margin-bottom: 0;
+        min-height: 120px; /* Минимальная высота для удобного нажатия */
+        touch-action: manipulation;
+      }
+
+      .mode-card h3 {
+        font-size: 1.2rem;
+        margin-bottom: 0.5rem;
+      }
+
+      .mode-card p {
+        font-size: 0.85rem;
+        margin-bottom: 0.5rem;
+      }
+
+      .mode-card .badge {
+        font-size: 0.8rem;
+        padding: 0.4rem 0.8rem;
+      }
+
+      .profile {
+        padding: 1.2rem;
+        margin: 0.5rem;
+        max-width: 100%;
+        border-radius: 15px;
+      }
+
+      .profile-header {
+        margin-bottom: 1rem;
+      }
+
+      .profile-avatar {
+        width: 50px;
+        height: 50px;
+        font-size: 1.2rem;
+      }
+
+      .stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 0.5rem;
+      }
+
+      .stat-card {
+        padding: 0.8rem;
+      }
+
+      .game-over-content {
+        padding: 1.5rem;
+        max-width: 95%;
+        margin: 1rem;
+      }
+
+      .game-over-content h2 {
+        font-size: 1.5rem;
+        margin-bottom: 1rem;
+      }
+
+      .modal-buttons {
+        flex-direction: column;
+        gap: 0.8rem;
+      }
+
+      .pause-button {
+        width: 45px;
+        height: 45px;
+        font-size: 1.2rem;
+        top: 8px;
+        left: 8px;
+        touch-action: manipulation;
+      }
+
+      #btnProfileFromMode {
+        margin-top: 1rem;
+        width: 100%;
+        max-width: 100%;
+      }
+    }
+
+    @media (max-width: 480px) {
+      body {
+        font-size: 13px;
+      }
+
+      .main-menu h1 {
+        font-size: 1.5rem;
+      }
+
+      .main-menu .subtitle {
+        font-size: 0.85rem;
+      }
+
+      .btn {
+        font-size: 0.9rem;
+        padding: 0.9rem 1.2rem;
+        min-height: 44px;
+      }
+
+      .game-mode-selection h1 {
+        font-size: 1.3rem;
+      }
+
+      .mode-card {
+        padding: 1rem;
+        min-height: 110px;
+      }
+
+      .mode-card h3 {
+        font-size: 1.1rem;
+      }
+
+      .mode-card p {
+        font-size: 0.8rem;
+      }
+
+      .pause-button {
+        width: 40px;
+        height: 40px;
+        font-size: 1rem;
+        top: 5px;
+        left: 5px;
+      }
+
+      .game-over-content {
+        padding: 1.2rem;
+      }
+
+      .game-over-content h2 {
+        font-size: 1.3rem;
+      }
+    }
+
+    /* Предотвращение выделения текста на мобильных при нажатии */
+    .mode-card, .btn, .pause-button {
+      -webkit-tap-highlight-color: transparent;
+      -webkit-touch-callout: none;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+  </style>
+</head>
+
+<body>
+  <div id="canvas-container" class="hide">
+    <canvas id="canvas"></canvas>
+    <!-- Pause Button - в левом верхнем углу canvas -->
+    <button id="btnPause" class="pause-button hide" title="Пауза (Esc)">⏸️</button>
+  </div>
+
+  <!-- Loading Screen -->
+  <div class="loading" id="loading">
+    <div class="main">
+      <div class="title">🎄 Colizeum Tower Game</div>
+      <div class="bar">
+        <div class="percent" id="loadingPercent"></div>
+      </div>
+      <div class="text" id="loadingText">Загрузка...</div>
+    </div>
+  </div>
+
+  <!-- Main Menu -->
+  <div class="main-menu hide" id="mainMenu">
+    <h1>🎄 Colizeum Tower</h1>
+    <p class="subtitle">Новогодняя игра для клуба!</p>
+    <div class="menu-buttons">
+      <button class="btn btn-info" id="btnProfile">👤 Личный кабинет</button>
+    </div>
+  </div>
+
+  <!-- Profile -->
+  <div class="profile-screen hide" id="profileScreen">
+    <div class="profile">
+      <div class="profile-header">
+        <div class="profile-avatar" id="profileAvatar">👤</div>
+        <div class="profile-info">
+          <h3 id="profileName">Загрузка...</h3>
+          <p id="profileUsername">@username</p>
+        </div>
+      </div>
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="value" id="statGames">0</div>
+          <div class="label">Игр</div>
+        </div>
+        <div class="stat-card">
+          <div class="value" id="statBestScore">0</div>
+          <div class="label">Лучший результат</div>
+        </div>
+        <div class="stat-card">
+          <div class="value" id="statBonuses">0</div>
+          <div class="label">Бонусов</div>
+        </div>
+        <div class="stat-card">
+          <div class="value" id="statRank">-</div>
+          <div class="label">Место в топе</div>
+        </div>
+      </div>
+      <div class="bonus-info" id="bonusInfo">
+        <div>🎁 Игра за бонусы</div>
+        <div class="countdown" id="bonusCountdown">Проверка...</div>
+      </div>
+      
+      <!-- История игр за бонусы -->
+      <div class="bonus-history-section" style="margin-top: 2rem;">
+        <h3 style="color: #333; margin-bottom: 1rem; text-align: center; font-weight: 700;">📜 История игр за бонусы</h3>
+        <div id="bonusHistoryList" style="background: rgba(255, 255, 255, 0.95); border-radius: 15px; padding: 1rem; max-height: 300px; overflow-y: auto;">
+          <div style="text-align: center; padding: 1rem; color: #666;">Загрузка...</div>
+        </div>
+      </div>
+      
+      <!-- Мировой топ -->
+      <div class="leaderboard-section" style="margin-top: 2rem;">
+        <h3 style="color: #333; margin-bottom: 1rem; text-align: center; font-weight: 700;">🏆 Мировой топ</h3>
+        <div id="leaderboardList" style="background: rgba(255, 255, 255, 0.95); border-radius: 15px; padding: 1rem; max-height: 300px; overflow-y: auto;">
+          <div style="text-align: center; padding: 1rem; color: #666;">Загрузка...</div>
+        </div>
+      </div>
+    </div>
+    <button class="btn btn-primary" id="btnBackFromProfile" style="margin-top: 2rem; margin-bottom: 1rem; width: 100%; max-width: 450px;">← К выбору режима</button>
+  </div>
+
+  <!-- Game Mode Selection -->
+  <div class="game-mode-selection hide" id="gameModeSelection">
+    <h1>Выберите режим игры</h1>
+    <div class="mode-cards">
+      <div class="mode-card" id="modeNormal">
+        <h3>🎮 Обычная игра</h3>
+        <p>Играйте без ограничений, улучшайте свой результат!</p>
+        <span class="badge badge-success">Без ограничений</span>
+      </div>
+      <div class="mode-card" id="modeBonus">
+        <h3>🎁 Игра за бонусы</h3>
+        <p>Одна попытка в сутки. Получите бонусы за хороший результат!</p>
+        <span class="badge badge-warning" id="bonusBadge">Доступно</span>
+        <div id="bonusModeInfo" style="margin-top: 0.5rem; font-size: 0.9rem; color: #666;"></div>
+      </div>
+    </div>
+    <button class="btn btn-info" id="btnProfileFromMode" style="margin-top: 2rem;">👤 Личный кабинет</button>
+  </div>
+
+  <!-- Pause Modal -->
+  <div class="game-over-modal hide" id="pauseModal">
+    <div class="game-over-content">
+      <h2>⏸️ Пауза</h2>
+      <div class="modal-buttons" style="margin-top: 2rem;">
+        <button class="btn btn-primary" id="btnResume">▶️ Продолжить</button>
+        <button class="btn btn-info" id="btnExitToMenu">🏠 Выйти в главное меню</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Game Over Modal -->
+  <div class="game-over-modal hide" id="gameOverModal">
+    <div class="game-over-content">
+      <h2>🎉 Игра окончена!</h2>
+      <div class="score" id="finalScore">0</div>
+      <div id="bonusEarned" class="bonus-earned hide"></div>
+      <div class="modal-buttons" style="margin-top: 2rem;">
+        <button class="btn btn-primary" id="btnPlayAgain">Играть снова</button>
+        <button class="btn btn-info" id="btnBackToMenu">В меню</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="./dist/main.js"></script>
+  <script src="./assets/zepto-1.1.6.min.js"></script>
+  <script>
+    // API Configuration
+    const API_BASE = window.location.origin;
+    let authToken = null;
+    let currentUser = null;
+    let currentGameType = 'normal';
+    let game = null;
+    let gameStart = false;
+    let score = 0;
+    let successCount = 0;
+    let perfectCount = 0;
+    let normalCount = 0;
+    let currentBonuses = 0; // Текущие бонусы в игре
+    let lastPerfectCount = 0; // Последнее значение PERFECT_COUNT для отслеживания изменений
+    let domReady = false;
+    let canvasReady = false;
+    let loadFinish = false;
+
+    // Initialize
+    function init() {
+      // Check if we're in Telegram Web App
+      if (window.Telegram && window.Telegram.WebApp) {
+        window.Telegram.WebApp.ready();
+        window.Telegram.WebApp.expand();
+      }
+
+      // Try to authenticate
+      authenticateUser();
+
+      // Setup event listeners
+      setupEventListeners();
+
+      // Initialize game
+      initGame();
+    }
+
+    // Authentication
+    async function authenticateUser() {
+      try {
+        // Check if we have initData from Telegram
+        const urlParams = new URLSearchParams(window.location.search);
+        const tgWebAppStartParam = urlParams.get('tgWebAppStartParam');
+
+        if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initData) {
+          const initData = window.Telegram.WebApp.initData;
+          console.log('Telegram WebApp initData found, authenticating...');
+          try {
+            const response = await fetch(`${API_BASE}/api/auth/telegram`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ initData })
+            });
+
+            if (response.ok) {
+              const data = await response.json();
+              authToken = data.token;
+              currentUser = data.user;
+              localStorage.setItem('authToken', authToken);
+              updateUI();
+              console.log('Authentication successful, user:', currentUser);
+            } else {
+              const errorData = await response.json().catch(() => ({}));
+              console.error('Auth failed:', response.status, errorData);
+            }
+          } catch (err) {
+            console.error('Auth request error:', err);
+          }
+        } else if (tgWebAppStartParam) {
+          // Fallback: use start param for demo - создаем временный токен для демо
+          console.log('Using start param for demo, userId:', tgWebAppStartParam);
+          // Для демо создаем фиктивного пользователя
+          try {
+            const demoResponse = await fetch(`${API_BASE}/api/auth/telegram`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ 
+                initData: `user=%7B%22id%22%3A${tgWebAppStartParam}%2C%22first_name%22%3A%22Demo%22%7D&auth_date=${Math.floor(Date.now() / 1000)}&hash=demo` 
+              })
+            });
+            if (demoResponse.ok) {
+              const data = await demoResponse.json();
+              authToken = data.token;
+              currentUser = data.user;
+              localStorage.setItem('authToken', authToken);
+              updateUI();
+            }
+          } catch (e) {
+            console.log('Demo auth failed, using stored token if available');
+          }
+        }
+        
+        // Check for stored token (если авторизация через Telegram не удалась)
+        if (!authToken) {
+          const storedToken = localStorage.getItem('authToken');
+          if (storedToken) {
+            authToken = storedToken;
+            await loadUserInfo();
+          }
+        }
+      } catch (err) {
+        console.error('Auth error:', err);
+      }
+    }
+
+    async function loadUserInfo() {
+      if (!authToken) {
+        console.log('No authToken, cannot load user info');
+        return;
+      }
+
+      try {
+        console.log('Loading user info with token:', authToken.substring(0, 20) + '...');
+        const response = await fetch(`${API_BASE}/api/user/me`, {
+          headers: { 'Authorization': `Bearer ${authToken}` }
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          console.log('User info loaded:', data);
+          currentUser = data.user;
+          updateUI();
+        } else {
+          const errorData = await response.json().catch(() => ({}));
+          console.error('Load user info failed:', response.status, errorData);
+          // Не удаляем токен сразу, возможно временная ошибка
+          if (response.status === 401) {
+            localStorage.removeItem('authToken');
+            authToken = null;
+          }
+        }
+      } catch (err) {
+        console.error('Load user error:', err);
+      }
+    }
+
+    function updateUI() {
+      if (currentUser) {
+        console.log('Updating UI with user:', currentUser);
+        const firstName = currentUser.firstName || currentUser.first_name || 'Игрок';
+        const username = currentUser.username || '';
+        
+        const nameEl = $('#profileName');
+        const usernameEl = $('#profileUsername');
+        const avatarEl = $('#profileAvatar');
+        
+        console.log('Updating UI elements:', {
+          nameEl: nameEl.length,
+          usernameEl: usernameEl.length,
+          avatarEl: avatarEl.length
+        });
+        
+        nameEl.text(firstName);
+        usernameEl.text(username ? `@${username}` : '');
+        avatarEl.text(firstName[0].toUpperCase());
+        
+        console.log('Elements text after update - Name:', nameEl.text(), 'Username:', usernameEl.text(), 'Avatar:', avatarEl.text());
+        console.log('UI updated - Name:', firstName, 'Username:', username, 'Avatar:', firstName[0].toUpperCase());
+      } else {
+        console.log('No currentUser to update UI');
+      }
+    }
+
+    // Event Listeners
+    function setupEventListeners() {
+      // Используем делегирование для всех кнопок с поддержкой touch
+      $(document).on('click touchstart', '#btnProfile', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        console.log('btnProfile clicked');
+        showProfile();
+      });
+      
+      $(document).on('click touchstart', '#btnProfileFromMode', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        console.log('btnProfileFromMode clicked');
+        showProfile();
+      });
+      
+      $(document).on('click touchstart', '#btnBackFromProfile', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        console.log('btnBackFromProfile clicked');
+        // Принудительно скрываем профиль
+        $('#profileScreen').addClass('hide').css('display', 'none');
+        $('.profile').removeClass('hide');
+        // Показываем меню выбора режима
+        showGameModeSelection();
+      });
+      
+      // Используем делегирование событий для кнопок режима игры (поддержка touch для мобильных)
+      $(document).on('click touchstart', '#modeNormal', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        console.log('Normal mode clicked');
+        startGame('normal');
+      });
+      
+      $(document).on('click touchstart', '#modeBonus', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        console.log('Bonus mode clicked');
+        if (!$(this).hasClass('disabled')) {
+          startGame('bonus');
+        } else {
+          alert('Игра за бонусы пока недоступна. Попробуйте позже!');
+        }
+      });
+      // Обработчики кнопок Game Over модального окна (с поддержкой touch для мобильных)
+      $(document).on('click touchstart', '#btnPlayAgain', function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        console.log('btnPlayAgain clicked');
+        $('#gameOverModal').addClass('hide').css('display', 'none');
+        showGameModeSelection();
+      });
+
+      $(document).on('click touchstart', '#btnBackToMenu', function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        console.log('btnBackToMenu clicked');
+        $('#gameOverModal').addClass('hide').css('display', 'none');
+        showGameModeSelection();
+      });
+
+      // Обработчики кнопок паузы (с поддержкой touch)
+      $(document).on('click touchstart', '#btnPause', function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        console.log('btnPause clicked');
+        pauseGame();
+      });
+
+      $(document).on('click touchstart', '#btnResume', function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        console.log('btnResume clicked');
+        resumeGame();
+      });
+
+      $(document).on('click touchstart', '#btnExitToMenu', function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        console.log('btnExitToMenu clicked');
+        exitToMenu();
+      });
+
+      // Обработчик клавиши Escape для паузы
+      $(document).on('keydown', function (e) {
+        if (e.key === 'Escape' && gameStart && !$('#pauseModal').hasClass('hide')) {
+          resumeGame();
+        } else if (e.key === 'Escape' && gameStart && $('#pauseModal').hasClass('hide') && $('#gameOverModal').hasClass('hide')) {
+          pauseGame();
+        }
+      });
+
+      // Обработчик клика на canvas для паузы (если игра запущена)
+      $('#canvas').on('click', function (e) {
+        // Не ставим паузу при клике, только через Escape или кнопку
+      });
+    }
+
+    function showMainMenu() {
+      // Принудительно скрываем все экраны
+      $('#loading').addClass('hide').css('display', 'none');
+      $('#mainMenu').addClass('hide').css('display', 'none');
+      $('#profileScreen').addClass('hide').css('display', 'none');
+      $('#canvas-container').addClass('hide');
+      $('#canvas').addClass('hide');
+      $('#profileScreen').addClass('hide');
+      $('#btnPause').addClass('hide');
+      // Показываем экран выбора режима игры вместо главного меню
+      showGameModeSelection();
+    }
+
+    function showProfile() {
+      console.log('showProfile called');
+      // Скрываем все экраны принудительно
+      $('#mainMenu').addClass('hide').css('display', 'none');
+      $('#gameModeSelection').addClass('hide').css('display', 'none');
+      $('.game-mode-selection').addClass('hide').css('display', 'none');
+      $('#canvas-container').addClass('hide');
+      $('#canvas').addClass('hide');
+      $('#loading').addClass('hide');
+      $('#pauseModal').addClass('hide');
+      $('#gameOverModal').addClass('hide');
+      
+      // Показываем экран профиля с максимальным приоритетом
+      $('#profileScreen').removeClass('hide');
+      $('.profile').removeClass('hide'); // Убеждаемся, что содержимое профиля видно
+      $('#profileScreen').css({
+        'display': 'flex',
+        'z-index': '10000',
+        'position': 'relative'
+      });
+      $('.profile').css('display', 'block'); // Убеждаемся, что .profile виден
+      console.log('Profile screen shown, display:', $('#profileScreen').css('display'), 'z-index:', $('#profileScreen').css('z-index'));
+      console.log('Profile content visible:', $('.profile').css('display'), $('.profile').hasClass('hide'));
+      
+      // Загружаем данные профиля
+      loadProfileData();
+    }
+
+    async function loadProfileData() {
+      if (!authToken) {
+        // Если нет авторизации, показываем сообщение
+        $('#profileName').text('Не авторизован');
+        $('#profileUsername').text('Войдите через Telegram бота');
+        $('#statGames').text('0');
+        $('#statBestScore').text('0');
+        $('#statBonuses').text('0');
+        $('#statRank').text('-');
+        $('#bonusCountdown').text('Требуется авторизация через бота');
+        return;
+      }
+
+      try {
+        // Сначала загружаем данные пользователя
+        await loadUserInfo();
+
+        // Затем загружаем статистику
+        const response = await fetch(`${API_BASE}/api/stats`, {
+          headers: { 'Authorization': `Bearer ${authToken}` }
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          console.log('Profile data loaded:', data);
+          const stats = data.stats;
+          const bonusInfo = data.bonusInfo;
+
+          const gamesEl = $('#statGames');
+          const bestScoreEl = $('#statBestScore');
+          const bonusesEl = $('#statBonuses');
+          const rankEl = $('#statRank');
+          
+          console.log('Updating stats elements:', {
+            gamesEl: gamesEl.length,
+            bestScoreEl: bestScoreEl.length,
+            bonusesEl: bonusesEl.length,
+            rankEl: rankEl.length
+          });
+          
+          gamesEl.text(stats.games_count || 0);
+          bestScoreEl.text(stats.best_score || 0);
+          bonusesEl.text(stats.total_bonuses || 0);
+          const rank = data.rank;
+          rankEl.text(rank ? `#${rank}` : '-');
+          
+          console.log('Profile stats updated:', {
+            games: stats.games_count,
+            bestScore: stats.best_score,
+            bonuses: stats.total_bonuses,
+            rank: rank
+          });
+          console.log('Elements text after update - Games:', gamesEl.text(), 'BestScore:', bestScoreEl.text(), 'Bonuses:', bonusesEl.text(), 'Rank:', rankEl.text());
+
+          // Update bonus info
+          const bonusInfoEl = $('#bonusInfo');
+          if (bonusInfo && bonusInfo.canPlay) {
+            bonusInfoEl.addClass('available');
+            $('#bonusCountdown').text('✅ Доступно сейчас!');
+          } else if (bonusInfo) {
+            bonusInfoEl.removeClass('available');
+            const nextAvailable = new Date(bonusInfo.nextAvailable);
+            const now = new Date();
+            const hours = Math.floor((nextAvailable - now) / (1000 * 60 * 60));
+            const minutes = Math.floor(((nextAvailable - now) % (1000 * 60 * 60)) / (1000 * 60));
+            $('#bonusCountdown').text(`⏰ Доступно через: ${hours}ч ${minutes}м`);
+          } else {
+            $('#bonusCountdown').text('Проверка...');
+          }
+
+          // Загружаем историю игр за бонусы
+          loadBonusHistory();
+          
+          // Загружаем мировой топ
+          loadLeaderboard();
+        } else {
+          console.error('Stats API error:', response.status, response.statusText);
+          // Ошибка авторизации
+          $('#profileName').text('Ошибка авторизации');
+          $('#profileUsername').text('Обновите страницу через бота');
+        }
+      } catch (err) {
+        console.error('Load profile error:', err);
+        $('#profileName').text('Ошибка загрузки');
+        $('#profileUsername').text('Проверьте подключение');
+      }
+    }
+
+    async function loadBonusHistory() {
+      if (!authToken) {
+        $('#bonusHistoryList').html('<div style="text-align: center; padding: 1rem; color: #666;">Требуется авторизация</div>');
+        return;
+      }
+
+      try {
+        const response = await fetch(`${API_BASE}/api/bonus/history?limit=10`, {
+          headers: { 'Authorization': `Bearer ${authToken}` }
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          displayBonusHistory(data.history);
+        } else {
+          $('#bonusHistoryList').html('<div style="text-align: center; padding: 1rem; color: #666;">Ошибка загрузки истории</div>');
+        }
+      } catch (err) {
+        console.error('Load bonus history error:', err);
+        $('#bonusHistoryList').html('<div style="text-align: center; padding: 1rem; color: #666;">Ошибка загрузки истории</div>');
+      }
+    }
+
+    function displayBonusHistory(history) {
+      const listEl = $('#bonusHistoryList');
+      
+      if (!history || history.length === 0) {
+        listEl.html('<div style="text-align: center; padding: 1rem; color: #666;">Пока нет игр за бонусы</div>');
+        return;
+      }
+
+      let html = '<div style="font-size: 0.85rem;">';
+      
+      history.forEach((game, index) => {
+        const date = new Date(game.played_at);
+        const dateStr = date.toLocaleDateString('ru-RU', { 
+          day: '2-digit', 
+          month: '2-digit', 
+          year: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit'
+        });
+        
+        html += `
+          <div style="display: flex; justify-content: space-between; align-items: center; padding: 1rem; border-bottom: 1px solid rgba(0, 0, 0, 0.08); transition: background 0.3s; border-radius: 8px; margin-bottom: 0.5rem; background: linear-gradient(135deg, rgba(102, 126, 234, 0.05) 0%, rgba(118, 75, 162, 0.05) 100%);">
+            <div style="flex: 1;">
+              <div style="font-weight: 700; color: #333; font-size: 1rem; margin-bottom: 0.3rem;">Игра #${history.length - index}</div>
+              <div style="font-size: 0.8rem; color: #666; opacity: 0.8;">${dateStr}</div>
+            </div>
+            <div style="text-align: right; margin-left: 1rem;">
+              <div style="font-weight: 700; color: #667eea; font-size: 1.1rem; margin-bottom: 0.2rem;">${game.score || 0} очков</div>
+              <div style="font-size: 0.75rem; color: #999; display: flex; align-items: center; justify-content: flex-end; gap: 0.3rem;">
+                <span>${game.bonuses_earned || 0}</span>
+                <span style="font-size: 1rem;">🎁</span>
+              </div>
+            </div>
+          </div>
+        `;
+      });
+      
+      html += '</div>';
+      listEl.html(html);
+    }
+
+    async function loadLeaderboard() {
+      if (!authToken) return;
+
+      try {
+        const response = await fetch(`${API_BASE}/api/leaderboard?limit=10`, {
+          headers: { 'Authorization': `Bearer ${authToken}` }
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          displayLeaderboard(data.leaderboard, data.userRank, data.userBestScore);
+        } else {
+          $('#leaderboardList').html('<div style="text-align: center; padding: 1rem; color: #666;">Ошибка загрузки топа</div>');
+        }
+      } catch (err) {
+        console.error('Load leaderboard error:', err);
+        $('#leaderboardList').html('<div style="text-align: center; padding: 1rem; color: #666;">Ошибка загрузки топа</div>');
+      }
+    }
+
+    function displayLeaderboard(leaderboard, userRank, userBestScore) {
+      const listEl = $('#leaderboardList');
+      
+      if (!leaderboard || leaderboard.length === 0) {
+        listEl.html('<div style="text-align: center; padding: 1rem; color: #666;">Пока нет игроков в топе</div>');
+        return;
+      }
+
+      let html = '<div style="font-size: 0.85rem;">';
+      
+      leaderboard.forEach((player, index) => {
+        const isCurrentUser = player.best_score === userBestScore && userRank === index + 1;
+        const medal = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : `${index + 1}.`;
+        const name = player.first_name || player.username || 'Игрок';
+        const username = player.username ? `@${player.username}` : '';
+        
+        html += `
+          <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.7rem; border-bottom: 1px solid #eee; ${isCurrentUser ? 'background: rgba(102, 126, 234, 0.1); font-weight: bold;' : ''}">
+            <div style="display: flex; align-items: center; gap: 0.5rem; flex: 1;">
+              <span style="font-size: 1.1rem; min-width: 30px;">${medal}</span>
+              <div>
+                <div style="font-weight: ${isCurrentUser ? 'bold' : 'normal'}; color: #333;">${name}</div>
+                ${username ? `<div style="font-size: 0.75rem; color: #666;">${username}</div>` : ''}
+              </div>
+            </div>
+            <div style="text-align: right;">
+              <div style="font-weight: bold; color: #667eea;">${player.best_score || 0}</div>
+              <div style="font-size: 0.7rem; color: #999;">${player.total_bonuses || 0} 🎁</div>
+            </div>
+          </div>
+        `;
+      });
+      
+      html += '</div>';
+      listEl.html(html);
+    }
+
+    async function showGameModeSelection() {
+      // Не показываем меню, если игра запущена ИЛИ canvas виден (игра запускается)
+      const canvasVisible = !$('#canvas-container').hasClass('hide');
+      if (gameStart || canvasVisible) {
+        console.log('Game is running or starting, not showing menu. gameStart:', gameStart, 'canvas visible:', canvasVisible);
+        return;
+      }
+      
+      console.log('showGameModeSelection called');
+      
+      // Скрываем все остальные экраны
+      $('#mainMenu').addClass('hide').css('display', 'none');
+      $('#profileScreen').addClass('hide').css('display', 'none');
+      $('#canvas-container').addClass('hide');
+      $('#canvas').addClass('hide');
+      $('#btnPause').addClass('hide');
+      $('#pauseModal').addClass('hide');
+      $('#gameOverModal').addClass('hide');
+      
+      // Показываем меню выбора режима
+      $('#gameModeSelection').removeClass('hide').css('display', 'flex');
+      
+      console.log('Game mode selection shown');
+
+      // Check bonus game availability
+      if (authToken) {
+        try {
+          const response = await fetch(`${API_BASE}/api/game/bonus/check`, {
+            headers: { 'Authorization': `Bearer ${authToken}` }
+          });
+
+          if (response.ok) {
+            const bonusInfo = await response.json();
+            const modeBonus = $('#modeBonus');
+            const bonusBadge = $('#bonusBadge');
+            const bonusModeInfo = $('#bonusModeInfo');
+
+            if (bonusInfo.canPlay) {
+              modeBonus.removeClass('disabled');
+              bonusBadge.text('✅ Доступно');
+              bonusModeInfo.text('');
+            } else {
+              modeBonus.addClass('disabled');
+              bonusBadge.text('⏰ Недоступно');
+              const nextAvailable = new Date(bonusInfo.nextAvailable);
+              const hours = Math.floor((nextAvailable - new Date()) / (1000 * 60 * 60));
+              const minutes = Math.floor(((nextAvailable - new Date()) % (1000 * 60 * 60)) / (1000 * 60));
+              bonusModeInfo.text(`Доступно через: ${hours}ч ${minutes}м`);
+            }
+          }
+        } catch (err) {
+          console.error('Check bonus game error:', err);
+        }
+      }
+    }
+
+    function startGame(gameType) {
+      if (gameType === 'bonus' && $('#modeBonus').hasClass('disabled')) {
+        alert('Игра за бонусы пока недоступна. Попробуйте позже!');
+        return;
+      }
+
+      currentGameType = gameType;
+      console.log('startGame called with type:', gameType);
+      
+      // Скрываем все меню принудительно
+      $('#mainMenu').addClass('hide').css('display', 'none');
+      $('#profileScreen').addClass('hide').css('display', 'none');
+      $('.game-mode-selection').addClass('hide').css('display', 'none');
+      $('#pauseModal').addClass('hide');
+      $('#gameOverModal').addClass('hide');
+      $('#profileScreen').addClass('hide');
+      
+      // Показываем canvas
+      $('#canvas-container').removeClass('hide');
+      $('#canvas').removeClass('hide');
+      $('#btnPause').removeClass('hide');
+      
+      console.log('Menu hidden, canvas shown');
+
+      // Сбрасываем состояние игры
+      gameStart = false;
+      score = 0;
+      successCount = 0;
+      perfectCount = 0;
+      normalCount = 0;
+      currentBonuses = 0;
+      lastPerfectCount = 0;
+
+      // Всегда пересоздаем игру при смене режима, чтобы обновить infiniteLives
+      // Останавливаем старую игру если она существует
+      if (game) {
+        if (game.pauseBgm) {
+          game.pauseBgm();
+        }
+        // Очищаем canvas
+        if (game.ctx) {
+          game.ctx.clearRect(0, 0, game.width || 0, game.height || 0);
+        }
+      }
+
+      // Уничтожаем старую игру и создаем новую с правильными параметрами
+      game = null;
+      canvasReady = false;
+
+      // Создаем новую игру с правильными параметрами для текущего режима
+      // Устанавливаем флаг, что игра запускается, чтобы предотвратить возврат в меню
+      gameStart = false; // Сбрасываем, чтобы игра могла начаться после клика на canvas
+      initGame();
+      
+      console.log('Game initialized, waiting for canvas click to start');
+    }
+
+    // Game Initialization
+    function initGame() {
+      const gameWidth = window.innerWidth;
+      const gameHeight = window.innerHeight;
+      const ratio = 1.5;
+      let finalWidth = gameWidth;
+      if (gameHeight / gameWidth < ratio) {
+        finalWidth = Math.ceil(gameHeight / ratio);
+      }
+
+  const option = {
+        width: finalWidth,
+    height: gameHeight,
+    canvasId: 'canvas',
+    soundOn: true,
+        // В обычной игре жизни бесконечные, в игре за бонусы - 3 жизни
+        infiniteLives: currentGameType === 'normal',
+    setGameScore: function (s) {
+          const oldScore = score;
+          score = s;
+          // setGameScore вызывается ПОСЛЕ addScore, когда PERFECT_COUNT уже обновлен
+          // Отслеживаем бонусы здесь, так как здесь мы точно знаем тип последнего блока
+          if (game && game.getVariable && score > oldScore && successCount > (perfectCount + normalCount)) {
+            try {
+              const currentPerfectCount = game.getVariable('PERFECT_COUNT', 0);
+              
+              // PERFECT_COUNT - это счетчик последовательных perfect блоков
+              // Если он > 0, значит последний блок был perfect
+              // Если он == 0, значит последний блок был обычным
+              
+              if (currentPerfectCount > 0) {
+                // Последний блок был perfect
+                perfectCount++;
+                lastPerfectCount = currentPerfectCount;
+                // В обычной игре: 25 бонусов за perfect блок
+                if (currentGameType === 'normal') {
+                  currentBonuses += 25;
+                  if (game.setVariable) {
+                    game.setVariable('GAME_BONUSES', currentBonuses);
+                  }
+                  console.log('Perfect block! Total blocks:', perfectCount + normalCount, 'Bonuses:', currentBonuses);
+                }
+              } else {
+                // Последний блок был обычным
+                normalCount++;
+                lastPerfectCount = 0;
+                // В обычной игре: 10 бонусов за обычный блок
+                if (currentGameType === 'normal') {
+                  currentBonuses += 10;
+                  if (game.setVariable) {
+                    game.setVariable('GAME_BONUSES', currentBonuses);
+                  }
+                  console.log('Normal block! Total blocks:', perfectCount + normalCount, 'Bonuses:', currentBonuses);
+                }
+              }
+            } catch (e) {
+              console.log('Error in setGameScore:', e);
+            }
+          }
+    },
+    setGameSuccess: function (s) {
+          successCount = s;
+    },
+    setGameFailed: function (f) {
+          console.log('setGameFailed called with:', f, 'gameType:', currentGameType, 'gameStart:', gameStart, 'infiniteLives:', currentGameType === 'normal');
+          // Не обрабатываем завершение игры, если игра еще не запущена
+          if (!gameStart) {
+            console.log('Game not started yet, ignoring setGameFailed');
+            return;
+          }
+          // В игре за бонусы вызываем endGame при 3 жизнях
+          if (currentGameType === 'bonus' && f >= 3) {
+            console.log('Bonus game ended with 3 lives, stopping game immediately...');
+            // Останавливаем игру немедленно
+            if (game && game.setVariable) {
+              try {
+                game.setVariable('GAME_START_NOW', false);
+              } catch (e) {
+                console.log('Error setting GAME_START_NOW:', e);
+              }
+            }
+            // Вызываем endGame немедленно (без вызова endAnimate, так как это вызывает ошибку)
+            endGame();
+          }
+          // В обычной игре просто продолжаем играть без ограничений
+        }
+      };
+
+  function gameReady() {
+        // Уничтожаем старую игру если она существует
+        if (game) {
+          try {
+            if (game.pauseBgm) game.pauseBgm();
+            if (game.ctx) {
+              game.ctx.clearRect(0, 0, game.width || 0, game.height || 0);
+            }
+          } catch (e) {
+            console.log('Error cleaning old game:', e);
+          }
+        }
+
+        game = TowerGame(option);
+    game.load(function () {
+          game.init();
+          // Убрано автовоспроизведение звука - будет включаться при старте игры
+          canvasReady = true;
+          // Загрузка игры завершена, но hideLoading уже вызвана при domReady
+          // Просто убеждаемся, что загрузка скрыта
+          $('#loading').addClass('hide');
+        }, updateLoading);
+      }
+
+      gameReady();
+    }
+
+    function updateLoading(status) {
+      const success = status.success;
+      const total = status.total;
+      const failed = status.failed;
+
+      if (failed > 0) {
+        $('#loadingText').text('Ошибка загрузки ресурсов');
+        return;
+      }
+
+      const percent = Math.min(parseInt((success / total) * 100), 100);
+      $('#loadingPercent').css('width', percent + '%');
+      $('#loadingText').text(`Загрузка... ${percent}%`);
+
+      // Если загрузка завершена (100%), скрываем экран загрузки
+      if (percent >= 100) {
+    setTimeout(function () {
+          // Принудительно скрываем загрузку
+          $('#loading').addClass('hide').css('display', 'none');
+          // Принудительно показываем экран выбора режима игры, если игра не запущена И canvas скрыт
+          // Не показываем меню, если игра уже запускается (canvas виден)
+          if (!gameStart && $('#canvas-container').hasClass('hide')) {
+            showGameModeSelection();
+          }
+        }, 300);
+      }
+    }
+
+    function hideLoading() {
+      // Для начальной загрузки достаточно только domReady
+      // Игра инициализируется только при выборе режима
+      console.log('hideLoading called, domReady:', domReady, 'game:', game, 'gameStart:', gameStart);
+      if (domReady) {
+    setTimeout(function () {
+          // Принудительно скрываем загрузку
+          $('#loading').addClass('hide').css('display', 'none');
+          // Если игра не запущена И canvas скрыт, показываем экран выбора режима игры
+          // Не показываем меню, если игра уже запускается (canvas виден)
+          if (!gameStart && $('#canvas-container').hasClass('hide')) {
+            showGameModeSelection();
+          }
+        }, 500);
+  } else {
+        // Если domReady еще false, попробуем через небольшую задержку
+        setTimeout(function () {
+          if (domReady) {
+            hideLoading();
+          }
+        }, 100);
+      }
+    }
+
+    function pauseGame() {
+      if (!game || !gameStart) return;
+
+      // Ставим игру на паузу
+      if (game.togglePaused) {
+        game.togglePaused();
+      }
+
+      // Показываем модальное окно паузы
+      $('#pauseModal').removeClass('hide');
+      $('#canvas-container').addClass('hide');
+    }
+
+    function resumeGame() {
+      if (!game || !gameStart) return;
+
+      // Скрываем модальное окно паузы
+      $('#pauseModal').addClass('hide');
+      $('#canvas-container').removeClass('hide');
+
+      // Снимаем паузу
+      if (game.togglePaused) {
+        game.togglePaused();
+      }
+    }
+
+    function exitToMenu() {
+      if (!game) return;
+
+      // Останавливаем игру
+      gameStart = false;
+      if (game.pauseBgm) {
+        game.pauseBgm();
+      }
+
+      // Скрываем модальное окно паузы и кнопку паузы
+      $('#pauseModal').addClass('hide');
+      $('#canvas-container').addClass('hide');
+      $('#btnPause').addClass('hide');
+
+      // Показываем главное меню (экран выбора режима)
+      showGameModeSelection();
+    }
+
+    async function endGame() {
+      console.log('endGame called, gameStart:', gameStart, 'currentGameType:', currentGameType, 'score:', score);
+      
+      // Не завершаем игру, если она еще не запущена
+      if (!gameStart) {
+        console.log('Game not started, ignoring endGame call');
+        return;
+      }
+      
+      // Устанавливаем флаг, что игра завершена СРАЗУ, чтобы предотвратить повторные вызовы
+      gameStart = false;
+      
+      // Останавливаем игру полностью
+      if (game) {
+        // Останавливаем игровой цикл
+        if (game.setVariable) {
+          try {
+            game.setVariable('GAME_START_NOW', false);
+          } catch (e) {
+            console.log('Error setting GAME_START_NOW:', e);
+          }
+        }
+        // НЕ вызываем endAnimate, так как это вызывает ошибку при завершении игры
+        // Останавливаем звук
+        if (game.pauseBgm) {
+          try {
+            game.pauseBgm();
+          } catch (e) {
+            console.log('Error pausing BGM:', e);
+          }
+        }
+      }
+
+      // Save game result
+      console.log('Saving game result, authToken:', !!authToken, 'score:', score, 'floors:', successCount);
+      if (authToken) {
+        try {
+          const response = await fetch(`${API_BASE}/api/game/save`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${authToken}`
+            },
+            body: JSON.stringify({
+              gameType: currentGameType,
+              score: score,
+              floors: successCount,
+              perfectCount: perfectCount,
+              normalCount: normalCount
+            })
+          });
+
+          if (response.ok) {
+            const data = await response.json();
+            console.log('Game saved successfully, bonusesEarned:', data.bonusesEarned);
+            showGameOverModal(data.bonusesEarned);
+          } else {
+            console.log('Game save failed, status:', response.status);
+            showGameOverModal(0);
+          }
+        } catch (err) {
+          console.error('Save game error:', err);
+          showGameOverModal(0);
+        }
+      } else {
+        console.log('No authToken, showing modal without saving');
+        showGameOverModal(0);
+      }
+    }
+
+    function showGameOverModal(bonusesEarned) {
+      console.log('showGameOverModal called, bonusesEarned:', bonusesEarned, 'score:', score);
+      
+      // Останавливаем игру полностью перед показом модального окна
+      if (game) {
+        // Останавливаем игровой цикл
+        if (game.setVariable) {
+          try {
+            game.setVariable('GAME_START_NOW', false);
+          } catch (e) {
+            console.log('Error setting GAME_START_NOW in showGameOverModal:', e);
+          }
+        }
+        // НЕ вызываем endAnimate, так как это вызывает ошибку
+        // Останавливаем звук
+        if (game.pauseBgm) {
+          try {
+            game.pauseBgm();
+          } catch (e) {
+            console.log('Error pausing BGM in showGameOverModal:', e);
+          }
+        }
+      }
+      
+      // Устанавливаем флаг, что игра завершена
+      gameStart = false;
+      
+      // Скрываем canvas и кнопку паузы
+      $('#canvas-container').addClass('hide');
+      $('#btnPause').addClass('hide');
+      
+      // Скрываем другие модальные окна
+      $('#pauseModal').addClass('hide');
+
+      // Обновляем данные в модальном окне
+      $('#finalScore').text(score || 0);
+      const bonusEarnedEl = $('#bonusEarned');
+
+      if (bonusesEarned > 0) {
+        bonusEarnedEl.removeClass('hide');
+        bonusEarnedEl.html(`🎁 Вы получили <strong>${bonusesEarned}</strong> бонусов!`);
+      } else {
+        bonusEarnedEl.addClass('hide');
+      }
+
+      // Скрываем/показываем кнопку "Играть снова" в зависимости от режима
+      const btnPlayAgain = $('#btnPlayAgain');
+      if (currentGameType === 'bonus') {
+        // В режиме за бонусы скрываем кнопку "Играть снова", так как попытка раз в 24 часа
+        btnPlayAgain.addClass('hide');
+      } else {
+        // В обычном режиме показываем кнопку
+        btnPlayAgain.removeClass('hide');
+      }
+
+      // Показываем модальное окно с результатами
+      const modalEl = $('#gameOverModal');
+      modalEl.removeClass('hide');
+      modalEl.css('display', 'flex');
+      modalEl.css('z-index', '10000');
+      modalEl.css('pointer-events', 'auto');
+      console.log('Game over modal shown, display:', modalEl.css('display'), 'z-index:', modalEl.css('z-index'), 'gameType:', currentGameType);
+    }
+
+    // Start game on click/touch - только на canvas
+    // Используем делегирование, так как canvas может пересоздаваться
+    $(document).on('click touchstart', '#canvas', function (e) {
+      e.stopPropagation();
+      // Проверяем видимость canvas через класс (Zepto не поддерживает :visible)
+      if (game && !gameStart && !$('#canvas-container').hasClass('hide') && canvasReady) {
+        console.log('Starting game on canvas click/touch');
+        
+        // Устанавливаем флаг ДО вызова game.start(), чтобы setGameFailed не вызывал endGame
+        gameStart = true;
+        
+        // Инициализируем счетчик бонусов в игре (всегда 0 при старте)
+        if (game && game.setVariable) {
+          currentBonuses = 0; // Сбрасываем бонусы при старте
+          game.setVariable('GAME_BONUSES', 0);
+          console.log('Game started, bonuses initialized to 0');
+        }
+        
+        // Предотвращаем возврат в меню
+        $('.game-mode-selection').addClass('hide').css('display', 'none');
+        
+        // Воспроизведение звука после взаимодействия пользователя
+        if (game && game.playBgm) {
+          try {
+            game.playBgm();
+          } catch (e) {
+            console.log('Sound play requires user interaction');
+          }
+        }
+        
+        // Запускаем игру
+        try {
+          game.start();
+          console.log('Game started successfully, gameStart:', gameStart);
+        } catch (error) {
+          console.error('Error starting game:', error);
+          gameStart = false; // Сбрасываем флаг при ошибке
+        }
+      }
+    });
+
+    // Window load
+  window.addEventListener('load', function () {
+      console.log('Window loaded');
+      domReady = true;
+      init();
+      // Вызываем hideLoading после небольшой задержки, чтобы убедиться, что все готово
+      setTimeout(function () {
+        hideLoading();
+      }, 100);
+    }, false);
+
+    // Также вызываем hideLoading при DOMContentLoaded на всякий случай
+    if (document.readyState === 'complete' || document.readyState === 'interactive') {
+      domReady = true;
+      setTimeout(function () {
+        hideLoading();
+      }, 100);
+    }
+  </script>
+</body>
+
+</html>
