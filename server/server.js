@@ -179,8 +179,8 @@ app.post('/api/game/save', authMiddleware, async (req, res) => {
       // Запись попытки
       await recordBonusAttempt(user.id);
     } else if (gameType === 'normal') {
-      // В обычной игре: 10 бонусов за обычный блок, 25 за perfect
-      bonusesEarned = (normalCount * 10) + (perfectCount * 25);
+      // В обычной игре: 10 бонусов за обычный блок, 20 за perfect
+      bonusesEarned = (normalCount * 10) + (perfectCount * 20);
     }
 
     // Сохранение игры

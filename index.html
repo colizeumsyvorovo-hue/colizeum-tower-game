@@ -1746,7 +1746,7 @@
                 perfectCount++;
                 // Начисляем бонусы только в обычной игре
                 if (currentGameType === 'normal') {
-                  currentBonuses += 25;
+                  currentBonuses += 20; // 20 бонусов за perfect блок
                   // Оптимизация: обновляем GAME_BONUSES только в обычной игре
                   game.setVariable('GAME_BONUSES', currentBonuses);
                 }
