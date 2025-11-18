@@ -1068,6 +1068,7 @@
     let currentBonuses = 0; // Текущие бонусы в игре
     let lastPerfectCount = 0;
     let previousPerfectCount = 0; // Предыдущее значение PERFECT_COUNT для отслеживания изменений
+    let lastTrackedSuccessCount = 0; // Последний отслеженный successCount для оптимизации
     let domReady = false;
     let canvasReady = false;
     let loadFinish = false;
@@ -1669,6 +1670,7 @@
       currentBonuses = 0;
       lastPerfectCount = 0;
       previousPerfectCount = 0;
+      lastTrackedSuccessCount = 0;
 
       // Всегда пересоздаем игру при смене режима, чтобы обновить infiniteLives
       // Останавливаем старую игру если она существует
@@ -1721,49 +1723,53 @@
           const oldScore = score;
           score = s;
           
+          // Оптимизация производительности: проверяем блоки только если счет увеличился
+          if (score <= oldScore || !game || !game.getVariable) return;
+          
           // Отслеживаем блоки для обоих режимов (нужно для подсчета perfectCount/normalCount)
           // Но начисляем бонусы только в обычной игре
-          if (game && game.getVariable && score > oldScore && successCount > (perfectCount + normalCount)) {
-            try {
+          try {
+            // Оптимизация: получаем переменные один раз
+            const currentSuccessCount = game.getVariable('SUCCESS_COUNT', 0);
+            
+            // Проверяем, появился ли новый блок (successCount увеличился)
+            // Это более надежный способ отслеживания новых блоков
+            if (currentSuccessCount > lastTrackedSuccessCount) {
               const currentPerfectCount = game.getVariable('PERFECT_COUNT', 0);
               
-              // Определяем тип блока по изменению PERFECT_COUNT
-              // Если PERFECT_COUNT стал > 0 (был 0), то это perfect блок
-              // Если PERFECT_COUNT стал 0 (был > 0), то это обычный блок
+              // Определяем тип блока по PERFECT_COUNT в момент появления нового блока
+              // Если PERFECT_COUNT > 0, то это perfect блок
+              // Если PERFECT_COUNT === 0, то это обычный блок
               
-              if (currentPerfectCount > 0 && previousPerfectCount === 0) {
-                // Новый perfect блок (начало серии)
+              if (currentPerfectCount > 0) {
+                // Perfect блок
                 perfectCount++;
                 // Начисляем бонусы только в обычной игре
                 if (currentGameType === 'normal') {
                   currentBonuses += 25;
-                  if (game.setVariable) {
-                    game.setVariable('GAME_BONUSES', currentBonuses);
-                  }
+                  // Оптимизация: обновляем GAME_BONUSES только в обычной игре
+                  game.setVariable('GAME_BONUSES', currentBonuses);
                 }
-                previousPerfectCount = currentPerfectCount;
                 lastPerfectCount = currentPerfectCount;
-              } else if (currentPerfectCount === 0 && previousPerfectCount > 0) {
-                // Обычный блок (конец серии perfect)
+              } else {
+                // Обычный блок
                 normalCount++;
                 // Начисляем бонусы только в обычной игре
                 if (currentGameType === 'normal') {
                   currentBonuses += 10;
-                  if (game.setVariable) {
-                    game.setVariable('GAME_BONUSES', currentBonuses);
-                  }
+                  // Оптимизация: обновляем GAME_BONUSES только в обычной игре
+                  game.setVariable('GAME_BONUSES', currentBonuses);
                 }
-                previousPerfectCount = currentPerfectCount;
                 lastPerfectCount = 0;
-              } else if (currentPerfectCount > previousPerfectCount) {
-                // Продолжение серии perfect - обновляем previousPerfectCount, но не начисляем бонусы
-                previousPerfectCount = currentPerfectCount;
-                lastPerfectCount = currentPerfectCount;
               }
-            } catch (e) {
-              // Тихая обработка ошибок для производительности
-              if (console && console.error) console.error('Error in setGameScore:', e);
+              
+              // Обновляем отслеживание
+              lastTrackedSuccessCount = currentSuccessCount;
+              previousPerfectCount = currentPerfectCount;
             }
+          } catch (e) {
+            // Тихая обработка ошибок для производительности
+            // Не логируем ошибки в production для лучшей производительности
           }
     },
     setGameSuccess: function (s) {
@@ -2107,6 +2113,7 @@
         if (game && game.setVariable) {
           currentBonuses = 0; // Сбрасываем бонусы при старте
           previousPerfectCount = 0; // Сбрасываем отслеживание perfect блоков
+          lastTrackedSuccessCount = 0; // Сбрасываем отслеживание successCount
           game.setVariable('GAME_BONUSES', 0);
         }
         
