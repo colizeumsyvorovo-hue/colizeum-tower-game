@@ -11,7 +11,8 @@ const {
   getUserStats,
   getLeaderboard,
   getUserRank,
-  getBonusGameHistory
+  getBonusGameHistory,
+  exchangeBonuses
 } = require('./database');
 const { generateToken, authMiddleware, validateTelegramWebApp } = require('./auth');
 
@@ -28,6 +29,9 @@ const bot = require('./telegram');
 // Webhook endpoint для Telegram бота
 if (bot) {
   app.use(bot.webhookCallback('/webhook'));
+  console.log('✅ Webhook endpoint registered: /webhook');
+} else {
+  console.warn('⚠️  Bot not initialized - webhook endpoint not available');
 }
 
 // API: Авторизация через Telegram Web App
@@ -146,6 +150,27 @@ app.get('/api/game/bonus/check', authMiddleware, async (req, res) => {
   }
 });
 
+// API: Начать игру за бонусы (записывает попытку сразу при старте)
+app.post('/api/game/bonus/start', authMiddleware, async (req, res) => {
+  try {
+    const { getUserByTelegramId } = require('./database');
+    const user = await getUserByTelegramId(req.user.telegramId);
+    const bonusInfo = await canPlayBonusGame(user.id);
+    
+    if (!bonusInfo.canPlay) {
+      return res.status(403).json({ error: 'Bonus game not available yet', nextAvailable: bonusInfo.nextAvailable });
+    }
+    
+    // Записываем попытку сразу при старте игры
+    await recordBonusAttempt(user.id);
+    
+    res.json({ success: true, message: 'Bonus game started' });
+  } catch (err) {
+    console.error('Start bonus game error:', err);
+    res.status(500).json({ error: 'Failed to start bonus game' });
+  }
+});
+
 // API: Сохранить результат игры
 app.post('/api/game/save', authMiddleware, async (req, res) => {
   try {
@@ -162,11 +187,9 @@ app.post('/api/game/save', authMiddleware, async (req, res) => {
     let bonusesEarned = 0;
     
     if (gameType === 'bonus') {
-      // Проверка для игры за бонусы
+      // Проверка для игры за бонусы (но попытка уже записана при старте)
       const bonusInfo = await canPlayBonusGame(user.id);
-      if (!bonusInfo.canPlay) {
-        return res.status(403).json({ error: 'Bonus game not available yet' });
-      }
+      // Если попытка уже записана при старте, это нормально, просто проверяем
 
       // Начисление бонусов в зависимости от результата
       if (score >= config.bonusRewards.minScore) {
@@ -175,12 +198,20 @@ app.post('/api/game/save', authMiddleware, async (req, res) => {
           config.bonusRewards.maxBonus
         );
       }
-
-      // Запись попытки
-      await recordBonusAttempt(user.id);
     } else if (gameType === 'normal') {
-      // В обычной игре: 10 бонусов за обычный блок, 20 за perfect
-      bonusesEarned = (normalCount * 10) + (perfectCount * 20);
+      // В обычной игре: 1 бонус за обычный блок, 2 за perfect
+      bonusesEarned = (normalCount * 1) + (perfectCount * 2);
+      
+      // Проверяем лимит накопления (максимум 500)
+      const userStats = await getUserStats(user.id);
+      const currentTotalBonuses = userStats.total_bonuses || 0;
+      const maxBonuses = 500;
+      const newTotalBonuses = currentTotalBonuses + bonusesEarned;
+      
+      if (newTotalBonuses > maxBonuses) {
+        // Начисляем только до лимита
+        bonusesEarned = Math.max(0, maxBonuses - currentTotalBonuses);
+      }
     }
 
     // Сохранение игры
@@ -250,12 +281,86 @@ app.get('/api/bonus/history', authMiddleware, async (req, res) => {
   }
 });
 
+// API: Обменять бонусы (нужно пополнить счет на 50% от суммы бонусов)
+app.post('/api/bonus/exchange', authMiddleware, async (req, res) => {
+  try {
+    const { bonusesAmount } = req.body;
+    
+    if (!bonusesAmount || bonusesAmount <= 0) {
+      return res.status(400).json({ error: 'Invalid bonuses amount' });
+    }
+    
+    const { getUserByTelegramId } = require('./database');
+    const user = await getUserByTelegramId(req.user.telegramId);
+    const userStats = await getUserStats(user.id);
+    
+    const currentBonuses = userStats.total_bonuses || 0;
+    
+    if (currentBonuses < bonusesAmount) {
+      return res.status(400).json({ error: 'Недостаточно бонусов для обмена' });
+    }
+    
+    // Выполняем обмен
+    const result = await exchangeBonuses(user.id, bonusesAmount);
+    
+    res.json({
+      success: true,
+      message: `Для получения ${bonusesAmount} бонусов необходимо пополнить счет на ${result.requiredDeposit} рублей в клубе`,
+      bonusesExchanged: result.bonusesExchanged,
+      requiredDeposit: result.requiredDeposit,
+      remainingBonuses: result.remainingBonuses
+    });
+  } catch (err) {
+    console.error('Exchange bonuses error:', err);
+    res.status(500).json({ error: err.message || 'Failed to exchange bonuses' });
+  }
+});
+
 // Запуск сервера
-app.listen(config.port, () => {
+app.listen(config.port, async () => {
   console.log(`🚀 Server running on port ${config.port}`);
   console.log(`🎮 Game available at ${config.frontendUrl}`);
-  if (config.telegramBotToken) {
-    console.log(`🤖 Telegram bot is active`);
+  
+  // Настройка webhook для Telegram бота
+  console.log('🔍 Checking bot configuration...');
+  console.log(`  - Bot exists: ${!!bot}`);
+  console.log(`  - Bot token exists: ${!!config.telegramBotToken}`);
+  console.log(`  - Webhook URL: ${config.telegramWebhookUrl || 'NOT SET'}`);
+  
+  if (bot && config.telegramBotToken && config.telegramWebhookUrl) {
+    try {
+      const webhookUrl = `${config.telegramWebhookUrl}/webhook`;
+      console.log(`🔧 Setting webhook to: ${webhookUrl}`);
+      const result = await bot.telegram.setWebhook(webhookUrl);
+      console.log(`✅ Telegram bot webhook set successfully:`, result);
+      
+      const webhookInfo = await bot.telegram.getWebhookInfo();
+      console.log(`✅ Telegram bot webhook configured`);
+      console.log(`🤖 Webhook URL: ${webhookInfo.url || webhookUrl}`);
+      console.log(`📊 Webhook info:`, {
+        url: webhookInfo.url,
+        has_custom_certificate: webhookInfo.has_custom_certificate,
+        pending_update_count: webhookInfo.pending_update_count,
+        last_error_date: webhookInfo.last_error_date,
+        last_error_message: webhookInfo.last_error_message
+      });
+      
+      if (webhookInfo.pending_update_count > 0) {
+        console.log(`⚠️  Warning: ${webhookInfo.pending_update_count} pending updates in queue`);
+      }
+    } catch (err) {
+      console.error('❌ Error setting webhook:', err);
+      console.error('Error details:', err.message);
+      if (err.response) {
+        console.error('Telegram API response:', err.response);
+      }
+      console.error('Bot will not receive updates until webhook is configured correctly');
+    }
+  } else if (config.telegramBotToken) {
+    console.log(`⚠️  Bot token found but webhook URL not set - bot will work in polling mode`);
+    console.log(`🤖 Telegram bot is active (polling mode)`);
+  } else if (!config.telegramBotToken) {
+    console.log(`⚠️  Telegram bot token not provided - bot disabled`);
   }
 });
 

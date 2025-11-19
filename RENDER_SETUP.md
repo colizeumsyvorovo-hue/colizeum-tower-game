@@ -47,6 +47,12 @@
 - **Value:** `https://colizeum-tower-game.onrender.com`
   - ✅ **ВАШ URL:** `https://colizeum-tower-game.onrender.com`
 
+### 7. TELEGRAM_WEBHOOK_URL (ВАЖНО для работы бота!)
+- **NAME:** `TELEGRAM_WEBHOOK_URL`
+- **Value:** `https://colizeum-tower-game.onrender.com`
+  - ✅ **ВАШ URL:** `https://colizeum-tower-game.onrender.com`
+  - ⚠️ **ОБЯЗАТЕЛЬНО!** Без этой переменной бот не будет работать на Render.com
+
 ## 📋 Пошаговая инструкция добавления переменных:
 
 1. На втором фото найдите секцию **"Environment Variables"**
@@ -76,7 +82,28 @@ NODE_ENV = production
 PORT = 3000
 DATABASE_PATH = ./server/database/game.db
 TELEGRAM_BOT_TOKEN = ваш_токен
+TELEGRAM_WEBHOOK_URL = https://colizeum-tower-game.onrender.com
 JWT_SECRET = ваш_секретный_ключ
-FRONTEND_URL = https://your-app-name.onrender.com
+FRONTEND_URL = https://colizeum-tower-game.onrender.com
 ```
+
+## 🔧 Исправление проблемы с ботом:
+
+Если бот перестал работать, проверьте:
+
+1. **Переменная `TELEGRAM_WEBHOOK_URL` установлена?**
+   - Должна быть равна вашему URL на Render.com
+   - Например: `https://colizeum-tower-game.onrender.com`
+
+2. **Переменная `TELEGRAM_BOT_TOKEN` установлена?**
+   - Должен быть действительный токен от @BotFather
+
+3. **После добавления переменных:**
+   - Перезапустите сервис на Render.com (Manual Deploy → Deploy latest commit)
+   - Проверьте логи - должно быть сообщение "✅ Telegram bot webhook configured"
+
+4. **Проверка webhook:**
+   - Откройте логи сервера на Render.com
+   - Должно быть: `✅ Telegram bot webhook configured`
+   - Должно быть: `🤖 Webhook URL: https://your-url.onrender.com/webhook`
 

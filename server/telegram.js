@@ -109,9 +109,10 @@ if (config.telegramBotToken) {
   const useWebhook = config.telegramWebhookUrl && !config.telegramWebhookUrl.includes('localhost');
   
   if (useWebhook) {
-    // Используем webhook для production
+    // Используем webhook для production (webhook будет настроен в server.js)
     console.log('✅ Telegram bot configured for webhook mode');
-    console.log(`🤖 Webhook URL: ${config.telegramWebhookUrl}`);
+    console.log(`🤖 Webhook URL will be set to: ${config.telegramWebhookUrl}/webhook`);
+    // Не запускаем бота здесь, webhook будет настроен в server.js после запуска сервера
   } else {
     // Используем polling для разработки
     bot.launch().then(() => {
