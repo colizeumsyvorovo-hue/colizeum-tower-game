@@ -92,7 +92,7 @@ window.TowerGame = (option = {}) => {
     painter: snowPainter
   })
   game.addInstance(snow)
-  initSnow(game, 80)
+  initSnow(game) // Автоматически определит оптимальное количество для устройства
   game.addKeyDownListener('enter', () => {
     if (game.debug) game.togglePaused()
   })

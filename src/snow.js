@@ -116,9 +116,16 @@ class Snowflake {
 let snowflakes = []
 let currentEngine = null
 
-export const initSnow = (engine, count = 80) => {
+export const initSnow = (engine, count = null) => {
   // Переинициализируем снег при создании новой игры
-  // Больше снежинок для более реалистичного эффекта (как настоящий снегопад)
+  // Автоматически определяем оптимальное количество снежинок в зависимости от размера экрана
+  // Для мобильных устройств - меньше снежинок для производительности
+  if (count === null) {
+    // Определяем количество снежинок на основе размера экрана
+    const screenArea = engine.width * engine.height
+    const isMobile = engine.width < 500 || engine.height < 800 // Примерно для мобильных
+    count = isMobile ? 30 : 50 // Меньше снежинок на мобильных для производительности
+  }
   snowflakes = []
   currentEngine = engine
   for (let i = 0; i < count; i++) {
@@ -129,8 +136,12 @@ export const initSnow = (engine, count = 80) => {
 export const snowAction = (instance, engine) => {
   // Инициализация если еще не созданы или двигатель изменился
   if (snowflakes.length === 0 || currentEngine !== engine) {
-    initSnow(engine, 80)
+    initSnow(engine) // Автоматически определит оптимальное количество
   }
+  
+  // Оптимизация: обновляем снежинки только если игра запущена
+  const gameStartNow = engine.getVariable('GAME_START_NOW')
+  if (!gameStartNow) return
   
   // Обновление всех снежинок (более плавно, как в реальной жизни)
   snowflakes.forEach(snowflake => {
@@ -139,14 +150,21 @@ export const snowAction = (instance, engine) => {
 }
 
 export const snowPainter = (instance, engine) => {
+  // Оптимизация: рисуем снежинки только если игра запущена
+  const gameStartNow = engine.getVariable('GAME_START_NOW')
+  if (!gameStartNow || snowflakes.length === 0) return
+  
   // Рисование всех снежинок поверх всех элементов
   // Используем глобальный composite для рисования поверх всего
   const ctx = engine.ctx
   ctx.save()
   ctx.globalCompositeOperation = 'source-over'
+  
+  // Оптимизация: группируем операции рисования
   snowflakes.forEach(snowflake => {
     snowflake.draw(ctx)
   })
+  
   ctx.restore()
 }
 
