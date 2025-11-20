@@ -38,11 +38,10 @@ export const endAnimate = (engine) => {
   const scoreHeight = score.height
   const zoomedWidth = engine.width * 0.35
   const zoomedHeight = (scoreHeight * zoomedWidth) / scoreWidth
-  // Поднимаем изображение score.png выше (уменьшаем координату Y)
   engine.ctx.drawImage(
     score,
     engine.width * 0.61,
-    engine.width * 0.02, // Было 0.038, теперь 0.02 - поднимаем выше
+    engine.width * 0.02, // Поднимаем выше (было 0.038, стало 0.02)
     zoomedWidth,
     zoomedHeight
   )
@@ -53,7 +52,7 @@ export const endAnimate = (engine) => {
     string: String(bonusesToShow),
     size: engine.width * 0.06,
     x: engine.width * 0.9,
-    y: engine.width * 0.11,
+    y: engine.width * 0.095, // Поднимаем выше, чтобы соответствовать новому положению изображения
     textAlign: 'right'
   })
   const { ctx } = engine
