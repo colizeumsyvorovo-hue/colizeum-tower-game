@@ -57,42 +57,56 @@ class Snowflake {
     ctx.translate(this.x, this.y)
     ctx.rotate(this.rotation)
     
-    // Более красивая снежинка с градиентом
-    const gradient = ctx.createRadialGradient(0, 0, 0, 0, 0, this.size)
-    gradient.addColorStop(0, 'rgba(255, 255, 255, 0.9)')
-    gradient.addColorStop(0.5, 'rgba(255, 255, 255, 0.6)')
-    gradient.addColorStop(1, 'rgba(255, 255, 255, 0.2)')
+    // Более реалистичная снежинка с мягким градиентом (как настоящий снег)
+    const gradient = ctx.createRadialGradient(0, 0, 0, 0, 0, this.size * 1.2)
+    gradient.addColorStop(0, 'rgba(255, 255, 255, 0.95)')
+    gradient.addColorStop(0.4, 'rgba(255, 255, 255, 0.7)')
+    gradient.addColorStop(0.7, 'rgba(255, 255, 255, 0.4)')
+    gradient.addColorStop(1, 'rgba(255, 255, 255, 0.1)')
     
-    ctx.fillStyle = gradient
-    ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)'
-    ctx.lineWidth = 1.5
-    
-    // Рисуем снежинку в виде звездочки с 6 лучами
-    for (let i = 0; i < 6; i++) {
-      ctx.save()
-      ctx.rotate((Math.PI / 3) * i)
-      
-      // Основной луч
+    // Для маленьких снежинок - просто мягкий круг (более реалистично)
+    if (this.size < 2.5) {
+      ctx.fillStyle = gradient
       ctx.beginPath()
-      ctx.moveTo(0, 0)
-      ctx.lineTo(0, -this.size)
-      ctx.stroke()
+      ctx.arc(0, 0, this.size, 0, Math.PI * 2)
+      ctx.fill()
+    } else {
+      // Для больших снежинок - звездочка с 6 лучами
+      ctx.fillStyle = gradient
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.9)'
+      ctx.lineWidth = 1
+      ctx.lineCap = 'round'
+      ctx.lineJoin = 'round'
       
-      // Боковые веточки
+      // Рисуем снежинку в виде звездочки с 6 лучами (более мягкие линии)
+      for (let i = 0; i < 6; i++) {
+        ctx.save()
+        ctx.rotate((Math.PI / 3) * i)
+        
+        // Основной луч (мягче)
+        ctx.beginPath()
+        ctx.moveTo(0, 0)
+        ctx.lineTo(0, -this.size)
+        ctx.stroke()
+        
+        // Боковые веточки (более изящные)
+        if (this.size > 3) {
+          ctx.beginPath()
+          ctx.moveTo(0, -this.size * 0.6)
+          ctx.lineTo(-this.size * 0.25, -this.size * 0.5)
+          ctx.moveTo(0, -this.size * 0.6)
+          ctx.lineTo(this.size * 0.25, -this.size * 0.5)
+          ctx.stroke()
+        }
+        
+        ctx.restore()
+      }
+      
+      // Центральный круг с градиентом
       ctx.beginPath()
-      ctx.moveTo(0, -this.size * 0.6)
-      ctx.lineTo(-this.size * 0.3, -this.size * 0.5)
-      ctx.moveTo(0, -this.size * 0.6)
-      ctx.lineTo(this.size * 0.3, -this.size * 0.5)
-      ctx.stroke()
-      
-      ctx.restore()
+      ctx.arc(0, 0, this.size * 0.15, 0, Math.PI * 2)
+      ctx.fill()
     }
-    
-    // Центральный круг с градиентом
-    ctx.beginPath()
-    ctx.arc(0, 0, this.size * 0.2, 0, Math.PI * 2)
-    ctx.fill()
     
     ctx.restore()
   }
@@ -102,9 +116,9 @@ class Snowflake {
 let snowflakes = []
 let currentEngine = null
 
-export const initSnow = (engine, count = 60) => {
+export const initSnow = (engine, count = 80) => {
   // Переинициализируем снег при создании новой игры
-  // Увеличиваем количество снежинок для более красивого эффекта
+  // Больше снежинок для более реалистичного эффекта (как настоящий снегопад)
   snowflakes = []
   currentEngine = engine
   for (let i = 0; i < count; i++) {
@@ -115,10 +129,10 @@ export const initSnow = (engine, count = 60) => {
 export const snowAction = (instance, engine) => {
   // Инициализация если еще не созданы или двигатель изменился
   if (snowflakes.length === 0 || currentEngine !== engine) {
-    initSnow(engine, 60)
+    initSnow(engine, 80)
   }
   
-  // Обновление всех снежинок
+  // Обновление всех снежинок (более плавно, как в реальной жизни)
   snowflakes.forEach(snowflake => {
     snowflake.update(engine)
   })

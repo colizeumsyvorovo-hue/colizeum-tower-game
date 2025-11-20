@@ -2272,14 +2272,16 @@
       e.preventDefault();
       
       // Проверяем, что мы действительно в игровом экране, а не в меню
-      if ($('#gameModeSelection').is(':visible') || $('#gameModeSelection').css('display') === 'flex') {
+      // Zepto не поддерживает :visible, используем проверку через класс и display
+      const gameModeSelection = $('#gameModeSelection');
+      if (!gameModeSelection.hasClass('hide') && (gameModeSelection.css('display') === 'flex' || gameModeSelection.css('display') === 'block')) {
         console.log('Menu is visible, ignoring canvas click');
         return false;
       }
       
       // Проверяем, что canvas видим и игра не запущена
       const canvasContainer = $('#canvas-container');
-      if (canvasContainer.hasClass('hide') || !canvasContainer.is(':visible')) {
+      if (canvasContainer.hasClass('hide') || canvasContainer.css('display') === 'none') {
         console.log('Canvas is hidden, ignoring click');
         return false;
       }
