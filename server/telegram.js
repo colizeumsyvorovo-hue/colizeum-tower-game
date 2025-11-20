@@ -150,9 +150,29 @@ if (config.telegramBotToken) {
     console.error('Update:', ctx.update);
   });
 
-  // Graceful stop
-  process.once('SIGINT', () => bot.stop('SIGINT'));
-  process.once('SIGTERM', () => bot.stop('SIGTERM'));
+  // Graceful stop (только если бот запущен в polling режиме)
+  const gracefulStop = async (signal) => {
+    try {
+      // Проверяем, запущен ли бот (только для polling режима)
+      if (!useWebhook) {
+        await bot.stop(signal);
+        console.log(`Bot stopped gracefully with ${signal}`);
+      } else {
+        // Для webhook режима просто закрываем webhook
+        console.log(`Bot webhook mode - graceful shutdown with ${signal}`);
+      }
+    } catch (err) {
+      // Игнорируем ошибку, если бот не запущен
+      if (err.message && err.message.includes('Bot is not running')) {
+        console.log(`Bot not running, skipping stop (${signal})`);
+      } else {
+        console.error(`Error stopping bot (${signal}):`, err);
+      }
+    }
+  };
+  
+  process.once('SIGINT', () => gracefulStop('SIGINT'));
+  process.once('SIGTERM', () => gracefulStop('SIGTERM'));
 } else {
   console.warn('Telegram bot token not provided. Bot will not work.');
 }
