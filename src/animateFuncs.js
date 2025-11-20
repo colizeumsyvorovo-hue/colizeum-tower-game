@@ -41,7 +41,7 @@ export const endAnimate = (engine) => {
   engine.ctx.drawImage(
     score,
     engine.width * 0.61,
-    engine.width * 0.005, // Поднимаем еще выше (было 0.01, стало 0.005 - почти вверху)
+    5, // Фиксированное значение 5 пикселей от верха (вместо относительного)
     zoomedWidth,
     zoomedHeight
   )
@@ -52,7 +52,7 @@ export const endAnimate = (engine) => {
     string: String(bonusesToShow),
     size: engine.width * 0.06,
     x: engine.width * 0.9,
-    y: engine.width * 0.08, // Поднимаем выше, чтобы соответствовать новому положению изображения
+    y: 25, // Фиксированное значение 25 пикселей от верха для выравнивания с изображением
     textAlign: 'right'
   })
   const { ctx } = engine
