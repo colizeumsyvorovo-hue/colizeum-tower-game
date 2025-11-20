@@ -1313,19 +1313,49 @@
       $(document).on('click touchstart', '#modeNormal', function(e) {
         e.preventDefault();
         e.stopPropagation();
-        console.log('Normal mode clicked');
+        console.log('Normal mode clicked, gameStart:', gameStart);
+        
+        // Проверяем, что мы действительно в меню выбора режима
+        const gameModeSelection = $('#gameModeSelection');
+        if (gameModeSelection.hasClass('hide') || gameModeSelection.css('display') === 'none') {
+          console.log('Menu is hidden, ignoring click');
+          return false;
+        }
+        
+        // Проверяем, что игра не запущена
+        if (gameStart) {
+          console.log('Game is already started, ignoring click');
+          return false;
+        }
+        
         startGame('normal');
+        return false;
       });
       
       $(document).on('click touchstart', '#modeBonus', function(e) {
         e.preventDefault();
         e.stopPropagation();
-        console.log('Bonus mode clicked');
+        console.log('Bonus mode clicked, gameStart:', gameStart);
+        
+        // Проверяем, что мы действительно в меню выбора режима
+        const gameModeSelection = $('#gameModeSelection');
+        if (gameModeSelection.hasClass('hide') || gameModeSelection.css('display') === 'none') {
+          console.log('Menu is hidden, ignoring click');
+          return false;
+        }
+        
+        // Проверяем, что игра не запущена
+        if (gameStart) {
+          console.log('Game is already started, ignoring click');
+          return false;
+        }
+        
         if (!$(this).hasClass('disabled')) {
           startGame('bonus');
         } else {
           alert('Игра за бонусы пока недоступна. Попробуйте позже!');
         }
+        return false;
       });
       // Обработчики кнопок Game Over модального окна (с поддержкой touch для мобильных)
       $(document).on('click touchstart', '#btnPlayAgain', function (e) {
@@ -2078,10 +2108,14 @@
       $('#canvas').addClass('hide');
       $('#btnPause').addClass('hide');
 
-      // Показываем главное меню (экран выбора режима)
-      // Сбрасываем gameStart перед вызовом, чтобы showGameModeSelection не блокировался
-      console.log('Calling showGameModeSelection, gameStart:', gameStart);
-      showGameModeSelection();
+      // Небольшая задержка перед показом меню, чтобы убедиться, что все обработчики событий завершились
+      setTimeout(() => {
+        // Убеждаемся, что gameStart сброшен
+        gameStart = false;
+        // Показываем главное меню (экран выбора режима)
+        console.log('Calling showGameModeSelection, gameStart:', gameStart);
+        showGameModeSelection();
+      }, 100);
     }
 
     async function endGame() {
@@ -2235,8 +2269,23 @@
     // Используем делегирование, так как canvas может пересоздаваться
     $(document).on('click touchstart', '#canvas', function (e) {
       e.stopPropagation();
+      e.preventDefault();
+      
+      // Проверяем, что мы действительно в игровом экране, а не в меню
+      if ($('#gameModeSelection').is(':visible') || $('#gameModeSelection').css('display') === 'flex') {
+        console.log('Menu is visible, ignoring canvas click');
+        return false;
+      }
+      
+      // Проверяем, что canvas видим и игра не запущена
+      const canvasContainer = $('#canvas-container');
+      if (canvasContainer.hasClass('hide') || !canvasContainer.is(':visible')) {
+        console.log('Canvas is hidden, ignoring click');
+        return false;
+      }
+      
       // Проверяем видимость canvas через класс (Zepto не поддерживает :visible)
-      if (game && !gameStart && !$('#canvas-container').hasClass('hide') && canvasReady) {
+      if (game && !gameStart && !canvasContainer.hasClass('hide') && canvasReady) {
         console.log('Starting game on canvas click/touch');
         
         // Устанавливаем флаг ДО вызова game.start(), чтобы setGameFailed не вызывал endGame

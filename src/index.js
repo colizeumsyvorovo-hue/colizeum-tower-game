@@ -92,7 +92,7 @@ window.TowerGame = (option = {}) => {
     painter: snowPainter
   })
   game.addInstance(snow)
-  initSnow(game, 50)
+  initSnow(game, 60)
   game.addKeyDownListener('enter', () => {
     if (game.debug) game.togglePaused()
   })

@@ -1,15 +1,19 @@
 import { checkMoveDown, getMoveDownValue } from './utils'
 
-// Класс снежинки
+// Класс снежинки с улучшенной графикой
 class Snowflake {
   constructor(engine) {
     this.x = Math.random() * engine.width
     this.y = Math.random() * engine.height
-    this.size = Math.random() * 3 + 1 // Размер от 1 до 4
-    this.speed = Math.random() * 0.5 + 0.3 // Скорость падения
-    this.wobble = Math.random() * 2 - 1 // Качание влево-вправо
-    this.wobbleSpeed = Math.random() * 0.02 + 0.01
-    this.opacity = Math.random() * 0.5 + 0.3 // Прозрачность от 0.3 до 0.8
+    this.size = Math.random() * 4 + 1.5 // Размер от 1.5 до 5.5
+    this.speed = Math.random() * 0.8 + 0.2 // Скорость падения от 0.2 до 1.0
+    this.wobble = Math.random() * Math.PI * 2 // Начальная фаза качания
+    this.wobbleSpeed = Math.random() * 0.03 + 0.01 // Скорость качания
+    this.wobbleAmplitude = Math.random() * 1.5 + 0.5 // Амплитуда качания
+    this.opacity = Math.random() * 0.6 + 0.4 // Прозрачность от 0.4 до 1.0
+    this.rotation = Math.random() * Math.PI * 2 // Вращение снежинки
+    this.rotationSpeed = (Math.random() - 0.5) * 0.05 // Скорость вращения
+    this.initialX = this.x // Начальная позиция X для волнового движения
   }
 
   update(engine) {
@@ -19,31 +23,77 @@ class Snowflake {
       this.y += getMoveDownValue(engine) * 0.5
     }
     
-    // Качание влево-вправо
+    // Вращение снежинки
+    this.rotation += this.rotationSpeed
+    
+    // Волновое качание (более плавное)
     this.wobble += this.wobbleSpeed
-    this.x += Math.sin(this.wobble) * 0.5
+    this.x = this.initialX + Math.sin(this.wobble) * this.wobbleAmplitude
+    
+    // Медленное горизонтальное движение (эффект ветра)
+    this.initialX += Math.sin(this.wobble * 0.5) * 0.1
     
     // Перезапуск когда упала за экран
-    if (this.y > engine.height) {
+    if (this.y > engine.height + 10) {
       this.y = -10
       this.x = Math.random() * engine.width
+      this.initialX = this.x
+      this.size = Math.random() * 4 + 1.5
+      this.speed = Math.random() * 0.8 + 0.2
+      this.opacity = Math.random() * 0.6 + 0.4
     }
     
     // Возврат на другую сторону если вышла за границы по X
-    if (this.x > engine.width) {
-      this.x = -this.size
-    } else if (this.x < -this.size) {
-      this.x = engine.width
+    if (this.initialX > engine.width + 50) {
+      this.initialX = -50
+    } else if (this.initialX < -50) {
+      this.initialX = engine.width + 50
     }
   }
 
   draw(ctx) {
     ctx.save()
     ctx.globalAlpha = this.opacity
-    ctx.fillStyle = '#ffffff'
+    ctx.translate(this.x, this.y)
+    ctx.rotate(this.rotation)
+    
+    // Более красивая снежинка с градиентом
+    const gradient = ctx.createRadialGradient(0, 0, 0, 0, 0, this.size)
+    gradient.addColorStop(0, 'rgba(255, 255, 255, 0.9)')
+    gradient.addColorStop(0.5, 'rgba(255, 255, 255, 0.6)')
+    gradient.addColorStop(1, 'rgba(255, 255, 255, 0.2)')
+    
+    ctx.fillStyle = gradient
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)'
+    ctx.lineWidth = 1.5
+    
+    // Рисуем снежинку в виде звездочки с 6 лучами
+    for (let i = 0; i < 6; i++) {
+      ctx.save()
+      ctx.rotate((Math.PI / 3) * i)
+      
+      // Основной луч
+      ctx.beginPath()
+      ctx.moveTo(0, 0)
+      ctx.lineTo(0, -this.size)
+      ctx.stroke()
+      
+      // Боковые веточки
+      ctx.beginPath()
+      ctx.moveTo(0, -this.size * 0.6)
+      ctx.lineTo(-this.size * 0.3, -this.size * 0.5)
+      ctx.moveTo(0, -this.size * 0.6)
+      ctx.lineTo(this.size * 0.3, -this.size * 0.5)
+      ctx.stroke()
+      
+      ctx.restore()
+    }
+    
+    // Центральный круг с градиентом
     ctx.beginPath()
-    ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2)
+    ctx.arc(0, 0, this.size * 0.2, 0, Math.PI * 2)
     ctx.fill()
+    
     ctx.restore()
   }
 }
@@ -52,8 +102,9 @@ class Snowflake {
 let snowflakes = []
 let currentEngine = null
 
-export const initSnow = (engine, count = 50) => {
+export const initSnow = (engine, count = 60) => {
   // Переинициализируем снег при создании новой игры
+  // Увеличиваем количество снежинок для более красивого эффекта
   snowflakes = []
   currentEngine = engine
   for (let i = 0; i < count; i++) {
@@ -64,7 +115,7 @@ export const initSnow = (engine, count = 50) => {
 export const snowAction = (instance, engine) => {
   // Инициализация если еще не созданы или двигатель изменился
   if (snowflakes.length === 0 || currentEngine !== engine) {
-    initSnow(engine, 50)
+    initSnow(engine, 60)
   }
   
   // Обновление всех снежинок
