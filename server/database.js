@@ -118,6 +118,53 @@ const updateUserStats = (userId, score, bonusesEarned) => {
   });
 };
 
+// Функция обмена бонусов (нужно пополнить счет на 50% от суммы бонусов)
+const exchangeBonuses = (userId, bonusesAmount) => {
+  return new Promise((resolve, reject) => {
+    db.serialize(() => {
+      db.get('SELECT total_bonuses FROM users WHERE id = ?', [userId], (err, user) => {
+        if (err) {
+          reject(err);
+          return;
+        }
+        
+        if (!user) {
+          reject(new Error('User not found'));
+          return;
+        }
+        
+        const currentBonuses = user.total_bonuses || 0;
+        
+        if (currentBonuses < bonusesAmount) {
+          reject(new Error('Not enough bonuses'));
+          return;
+        }
+        
+        // Обнуляем бонусы
+        db.run(
+          'UPDATE users SET total_bonuses = 0 WHERE id = ?',
+          [userId],
+          function(updateErr) {
+            if (updateErr) {
+              reject(updateErr);
+              return;
+            }
+            
+            // Рассчитываем требуемую сумму пополнения (50% от суммы бонусов)
+            const requiredAmount = Math.round(bonusesAmount * 0.5);
+            
+            resolve({
+              bonusesExchanged: bonusesAmount,
+              requiredDeposit: requiredAmount,
+              remainingBonuses: 0
+            });
+          }
+        );
+      });
+    });
+  });
+};
+
 // Функции для проверки доступности игры за бонусы
 const canPlayBonusGame = async (userId) => {
   return new Promise((resolve, reject) => {
@@ -261,6 +308,7 @@ module.exports = {
   getUserStats,
   getLeaderboard,
   getUserRank,
-  getBonusGameHistory
+  getBonusGameHistory,
+  exchangeBonuses
 };
 

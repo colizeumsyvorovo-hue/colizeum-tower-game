@@ -45,32 +45,16 @@ export const endAnimate = (engine) => {
     zoomedWidth,
     zoomedHeight
   )
-  // Проверяем, обычная ли это игра (через infiniteLives)
-  const gameUserOption = engine.getVariable(constant.gameUserOption, {})
-  const isNormalGame = gameUserOption && gameUserOption.infiniteLives === true
+  // Всегда показываем бонусы вместо очков в обоих режимах
   const gameBonuses = engine.getVariable('GAME_BONUSES')
-  
-  // В обычной игре показываем бонусы вместо очков в строке Score
-  if (isNormalGame) {
-    // Показываем бонусы (если undefined или null, показываем 0)
-    const bonusesToShow = (gameBonuses !== undefined && gameBonuses !== null) ? gameBonuses : 0
-    drawYellowString(engine, {
-      string: String(bonusesToShow),
-      size: engine.width * 0.06,
-      x: engine.width * 0.9,
-      y: engine.width * 0.11,
-      textAlign: 'right'
-    })
-  } else {
-    // В игре за бонусы показываем очки
-    drawYellowString(engine, {
-      string: String(gameScore),
-      size: engine.width * 0.06,
-      x: engine.width * 0.9,
-      y: engine.width * 0.11,
-      textAlign: 'right'
-    })
-  }
+  const bonusesToShow = (gameBonuses !== undefined && gameBonuses !== null) ? gameBonuses : 0
+  drawYellowString(engine, {
+    string: String(bonusesToShow),
+    size: engine.width * 0.06,
+    x: engine.width * 0.9,
+    y: engine.width * 0.11,
+    textAlign: 'right'
+  })
   const { ctx } = engine
   const heart = engine.getImg('heart')
   const heartWidth = heart.width

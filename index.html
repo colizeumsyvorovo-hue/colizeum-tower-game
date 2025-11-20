@@ -986,6 +986,24 @@
         <div class="countdown" id="bonusCountdown">Проверка...</div>
       </div>
       
+      <!-- Обмен бонусов -->
+      <div class="bonus-exchange-section" style="margin-top: 2rem; background: rgba(255, 255, 255, 0.95); border-radius: 15px; padding: 1.5rem;">
+        <h3 style="color: #333; margin-bottom: 1rem; text-align: center; font-weight: 700;">💰 Обмен бонусов</h3>
+        <p style="color: #666; font-size: 0.9rem; text-align: center; margin-bottom: 1rem;">
+          Для получения бонусов необходимо пополнить счет в клубе на 50% от суммы бонусов
+        </p>
+        <div style="display: flex; gap: 0.5rem; align-items: center; justify-content: center;">
+          <input type="number" id="exchangeBonusesInput" placeholder="Количество бонусов" 
+            style="flex: 1; padding: 0.75rem; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 1rem; max-width: 200px;"
+            min="1" max="500">
+          <button class="btn btn-primary" id="btnExchangeBonuses" 
+            style="padding: 0.75rem 1.5rem; white-space: nowrap;">
+            Обменять
+          </button>
+        </div>
+        <div id="exchangeMessage" style="margin-top: 1rem; text-align: center; color: #667eea; font-weight: 600; display: none;"></div>
+      </div>
+      
       <!-- История игр за бонусы -->
       <div class="bonus-history-section" style="margin-top: 2rem;">
         <h3 style="color: #333; margin-bottom: 1rem; text-align: center; font-weight: 700;">📜 История игр за бонусы</h3>
@@ -1048,7 +1066,7 @@
     </div>
   </div>
 
-  <script src="./dist/main.js"></script>
+  <script src="./dist/main.js?v=202411201015"></script>
   <script src="./assets/zepto-1.1.6.min.js"></script>
   <script>
     // API Configuration
@@ -1249,6 +1267,48 @@
         showGameModeSelection();
       });
       
+      // Exchange bonuses
+      $(document).on('click touchstart', '#btnExchangeBonuses', async function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        
+        const bonusesAmount = parseInt($('#exchangeBonusesInput').val());
+        if (!bonusesAmount || bonusesAmount <= 0) {
+          alert('Введите количество бонусов для обмена');
+          return;
+        }
+        
+        if (!authToken) {
+          alert('Требуется авторизация');
+          return;
+        }
+        
+        try {
+          const response = await fetch(`${API_BASE}/api/bonus/exchange`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${authToken}`
+            },
+            body: JSON.stringify({ bonusesAmount })
+          });
+          
+          if (response.ok) {
+            const data = await response.json();
+            $('#exchangeMessage').text(data.message).css('display', 'block').css('color', '#667eea');
+            $('#exchangeBonusesInput').val('');
+            // Обновляем данные профиля
+            await loadProfileData();
+          } else {
+            const error = await response.json();
+            $('#exchangeMessage').text(error.error || 'Ошибка при обмене бонусов').css('display', 'block').css('color', '#e74c3c');
+          }
+        } catch (err) {
+          console.error('Exchange bonuses error:', err);
+          $('#exchangeMessage').text('Ошибка при обмене бонусов').css('display', 'block').css('color', '#e74c3c');
+        }
+      });
+      
       // Используем делегирование событий для кнопок режима игры (поддержка touch для мобильных)
       $(document).on('click touchstart', '#modeNormal', function(e) {
         e.preventDefault();
@@ -1437,6 +1497,10 @@
           
           // Загружаем мировой топ
           loadLeaderboard();
+          
+          // Устанавливаем максимальное значение для обмена бонусов
+          const currentBonuses = stats.total_bonuses || 0;
+          $('#exchangeBonusesInput').attr('max', Math.min(currentBonuses, 500));
         } else {
           console.error('Stats API error:', response.status, response.statusText);
           // Ошибка авторизации
@@ -1637,10 +1701,32 @@
       }
     }
 
-    function startGame(gameType) {
+    async function startGame(gameType) {
       if (gameType === 'bonus' && $('#modeBonus').hasClass('disabled')) {
         alert('Игра за бонусы пока недоступна. Попробуйте позже!');
         return;
+      }
+
+      // Для игры за бонусы записываем попытку сразу при старте
+      if (gameType === 'bonus' && authToken) {
+        try {
+          const response = await fetch(`${API_BASE}/api/game/bonus/start`, {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${authToken}`
+            }
+          });
+
+          if (!response.ok) {
+            const error = await response.json();
+            alert(error.error || 'Не удалось начать игру за бонусы');
+            return;
+          }
+        } catch (err) {
+          console.error('Start bonus game error:', err);
+          alert('Ошибка при начале игры за бонусы');
+          return;
+        }
       }
 
       currentGameType = gameType;
@@ -1713,63 +1799,89 @@
     soundOn: true,
         // В обычной игре жизни бесконечные, в игре за бонусы - 3 жизни
         infiniteLives: currentGameType === 'normal',
-        // Очки: 10 за обычный блок, 25 за perfect блок
-        successScore: 10,
-        perfectScore: 25,
+        // Очки: 1 за обычный блок, 2 за perfect блок
+        successScore: 1,
+        perfectScore: 2,
     setGameScore: function (s) {
+          // Логируем ВСЕ вызовы, чтобы понять, вызывается ли функция
+          console.log('setGameScore CALLED with:', s, 'current score:', score, 'game exists:', !!game, 'gameStart:', gameStart);
+          
           // Оптимизация: проверяем только если счет изменился
-          if (score === s) return;
+          if (score === s) {
+            console.log('setGameScore: score unchanged, skipping');
+            return;
+          }
           
           const oldScore = score;
           score = s;
           
           // Оптимизация производительности: проверяем блоки только если счет увеличился
-          if (score <= oldScore || !game || !game.getVariable) return;
+          if (score <= oldScore) {
+            console.log('setGameScore: score did not increase, skipping');
+            return;
+          }
           
-          // Отслеживаем блоки для обоих режимов (нужно для подсчета perfectCount/normalCount)
-          // Но начисляем бонусы только в обычной игре
+          if (!game || !game.getVariable) {
+            console.log('setGameScore: game or getVariable not available');
+            return;
+          }
+          
+          // Отслеживаем блоки по изменению SUCCESS_COUNT
           try {
-            // Оптимизация: получаем переменные один раз
             const currentSuccessCount = game.getVariable('SUCCESS_COUNT', 0);
+            const currentPerfectCount = game.getVariable('PERFECT_COUNT', 0);
+            
+            console.log('setGameScore called:', {
+              score: score,
+              oldScore: oldScore,
+              currentSuccessCount: currentSuccessCount,
+              lastTrackedSuccessCount: lastTrackedSuccessCount,
+              currentPerfectCount: currentPerfectCount,
+              previousPerfectCount: previousPerfectCount
+            });
             
             // Проверяем, появился ли новый блок (successCount увеличился)
-            // Это более надежный способ отслеживания новых блоков
             if (currentSuccessCount > lastTrackedSuccessCount) {
-              const currentPerfectCount = game.getVariable('PERFECT_COUNT', 0);
-              
-              // Определяем тип блока по PERFECT_COUNT в момент появления нового блока
-              // Если PERFECT_COUNT > 0, то это perfect блок
-              // Если PERFECT_COUNT === 0, то это обычный блок
+              // PERFECT_COUNT устанавливается в addScore ПЕРЕД вызовом setGameScore
+              // Для perfect блока: PERFECT_COUNT = lastPerfectCount + 1 (всегда > 0)
+              // Для обычного блока: PERFECT_COUNT = 0
+              // Простая логика: если PERFECT_COUNT > 0, значит это perfect блок
               
               if (currentPerfectCount > 0) {
                 // Perfect блок
                 perfectCount++;
-                // Начисляем бонусы только в обычной игре
+                const maxBonuses = 500;
+                const bonusToAdd = 2; // 2 бонуса за perfect блок
                 if (currentGameType === 'normal') {
-                  currentBonuses += 20; // 20 бонусов за perfect блок
-                  // Оптимизация: обновляем GAME_BONUSES только в обычной игре
-                  game.setVariable('GAME_BONUSES', currentBonuses);
+                  currentBonuses = Math.min(currentBonuses + bonusToAdd, maxBonuses);
+                } else {
+                  currentBonuses += bonusToAdd;
                 }
-                lastPerfectCount = currentPerfectCount;
+                game.setVariable('GAME_BONUSES', currentBonuses);
+                console.log('✅ Perfect block! Bonuses:', currentBonuses, 'added:', bonusToAdd, 'PERFECT_COUNT:', currentPerfectCount);
               } else {
                 // Обычный блок
                 normalCount++;
-                // Начисляем бонусы только в обычной игре
+                const maxBonuses = 500;
+                const bonusToAdd = 1; // 1 бонус за обычный блок
                 if (currentGameType === 'normal') {
-                  currentBonuses += 10;
-                  // Оптимизация: обновляем GAME_BONUSES только в обычной игре
-                  game.setVariable('GAME_BONUSES', currentBonuses);
+                  currentBonuses = Math.min(currentBonuses + bonusToAdd, maxBonuses);
+                } else {
+                  currentBonuses += bonusToAdd;
                 }
-                lastPerfectCount = 0;
+                game.setVariable('GAME_BONUSES', currentBonuses);
+                console.log('📦 Normal block! Bonuses:', currentBonuses, 'added:', bonusToAdd, 'PERFECT_COUNT:', currentPerfectCount);
               }
               
               // Обновляем отслеживание
               lastTrackedSuccessCount = currentSuccessCount;
               previousPerfectCount = currentPerfectCount;
+            } else {
+              console.log('No new block detected, successCount not increased');
             }
           } catch (e) {
             // Тихая обработка ошибок для производительности
-            // Не логируем ошибки в production для лучшей производительности
+            console.error('Error in setGameScore bonus calculation:', e);
           }
     },
     setGameSuccess: function (s) {
@@ -1813,7 +1925,15 @@
           }
         }
 
+        console.log('Creating TowerGame with option:', option);
+        console.log('setGameScore in option:', typeof option.setGameScore);
         game = TowerGame(option);
+        
+        // Проверяем, что setGameScore передался в игру
+        const gameUserOption = game ? game.getVariable('GAME_USER_OPTION') : null;
+        console.log('Game created, gameUserOption:', gameUserOption);
+        console.log('setGameScore in gameUserOption:', gameUserOption ? typeof gameUserOption.setGameScore : 'N/A');
+        
     game.load(function () {
           game.init();
           // Убрано автовоспроизведение звука - будет включаться при старте игры
@@ -2068,8 +2188,21 @@
       // Скрываем другие модальные окна
       $('#pauseModal').addClass('hide');
 
-      // Обновляем данные в модальном окне
-      $('#finalScore').text(score || 0);
+      // Получаем текущие бонусы из игры
+      let totalBonuses = 0;
+      if (game && game.getVariable) {
+        try {
+          const gameBonuses = game.getVariable('GAME_BONUSES');
+          totalBonuses = (gameBonuses !== undefined && gameBonuses !== null) ? gameBonuses : currentBonuses;
+        } catch (e) {
+          totalBonuses = currentBonuses;
+        }
+      } else {
+        totalBonuses = currentBonuses;
+      }
+      
+      // Показываем бонусы вместо очков
+      $('#finalScore').text(totalBonuses || 0);
       const bonusEarnedEl = $('#bonusEarned');
 
       if (bonusesEarned > 0) {
@@ -2114,7 +2247,10 @@
           currentBonuses = 0; // Сбрасываем бонусы при старте
           previousPerfectCount = 0; // Сбрасываем отслеживание perfect блоков
           lastTrackedSuccessCount = 0; // Сбрасываем отслеживание successCount
+          perfectCount = 0; // Сбрасываем счетчики
+          normalCount = 0;
           game.setVariable('GAME_BONUSES', 0);
+          console.log('Game started, bonuses reset to 0');
         }
         
         // Предотвращаем возврат в меню

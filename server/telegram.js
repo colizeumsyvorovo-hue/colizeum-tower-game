@@ -71,15 +71,32 @@ if (config.telegramBotToken) {
 
     try {
       const dbUser = await getOrCreateUser(user);
-      const { getUserStats } = require('./database');
+      const { getUserStats, getUserRank, canPlayBonusGame } = require('./database');
       const stats = await getUserStats(dbUser.id);
+      const rank = await getUserRank(dbUser.id);
+      const bonusInfo = await canPlayBonusGame(dbUser.id);
+
+      let bonusStatus = '';
+      if (bonusInfo.canPlay) {
+        bonusStatus = '✅ Доступно сейчас!';
+      } else {
+        const nextAvailable = new Date(bonusInfo.nextAvailable);
+        const now = new Date();
+        const hours = Math.floor((nextAvailable - now) / (1000 * 60 * 60));
+        const minutes = Math.floor(((nextAvailable - now) % (1000 * 60 * 60)) / (1000 * 60));
+        bonusStatus = `⏰ Доступно через: ${hours}ч ${minutes}м`;
+      }
 
       await ctx.reply(
         `📊 Ваша статистика:\n\n` +
+        `👤 Игрок: ${user.first_name || 'Игрок'}\n` +
         `🎮 Всего игр: ${stats.games_count || 0}\n` +
         `🎁 Игр за бонусы: ${stats.bonus_games_count || 0}\n` +
-        `⭐ Лучший результат: ${stats.best_score || 0} очков\n` +
-        `💰 Всего бонусов: ${stats.total_bonuses || 0}\n\n` +
+        `⭐ Лучший результат: ${stats.best_score || 0} этажей\n` +
+        `💰 Всего бонусов: ${stats.total_bonuses || 0}\n` +
+        `🏆 Место в топе: ${rank ? `#${rank}` : '-'}\n\n` +
+        `🎁 Игра за бонусы:\n${bonusStatus}\n\n` +
+        `💡 Для использования бонусов нужно накопить 500 и пополнить 50% суммы на игровой баланс в клубе.\n\n` +
         `Используйте /start для начала игры!`
       );
     } catch (err) {

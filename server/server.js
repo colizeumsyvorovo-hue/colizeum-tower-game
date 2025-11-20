@@ -46,8 +46,8 @@ app.post('/api/auth/telegram', async (req, res) => {
     // Валидация данных от Telegram (пропускаем для демо/разработки если нет токена)
     const isValid = validateTelegramWebApp(initData);
     if (!isValid && config.telegramBotToken) {
-      console.warn('Telegram validation failed, but continuing for development');
-      // Не блокируем, если токен бота не установлен (для разработки)
+      // В production лучше логировать, но не блокировать для совместимости
+      // console.warn('Telegram validation failed, but continuing for development');
     }
 
     // Парсинг данных
@@ -191,13 +191,8 @@ app.post('/api/game/save', authMiddleware, async (req, res) => {
       const bonusInfo = await canPlayBonusGame(user.id);
       // Если попытка уже записана при старте, это нормально, просто проверяем
 
-      // Начисление бонусов в зависимости от результата
-      if (score >= config.bonusRewards.minScore) {
-        bonusesEarned = Math.min(
-          config.bonusRewards.baseBonus + Math.floor(score / 10),
-          config.bonusRewards.maxBonus
-        );
-      }
+      // В игре за бонусы: 1 бонус за обычный блок, 2 за perfect
+      bonusesEarned = (normalCount * 1) + (perfectCount * 2);
     } else if (gameType === 'normal') {
       // В обычной игре: 1 бонус за обычный блок, 2 за perfect
       bonusesEarned = (normalCount * 1) + (perfectCount * 2);
@@ -216,7 +211,58 @@ app.post('/api/game/save', authMiddleware, async (req, res) => {
 
     // Сохранение игры
     await saveGame(user.id, gameType, score, floors, bonusesEarned);
+    
+    // Получаем статистику до обновления для проверки уведомлений
+    const statsBefore = await getUserStats(user.id);
+    const bonusesBefore = statsBefore.total_bonuses || 0;
+    
     await updateUserStats(user.id, score, bonusesEarned);
+    
+    // Получаем статистику после обновления
+    const statsAfter = await getUserStats(user.id);
+    const bonusesAfter = statsAfter.total_bonuses || 0;
+    
+    // Отправляем уведомления
+    try {
+      const bot = require('./telegram');
+      if (bot) {
+        // Если это игра за бонусы, всегда отправляем уведомление (даже если 0 бонусов)
+        if (gameType === 'bonus') {
+          const remaining = Math.max(0, 500 - bonusesAfter);
+          await bot.telegram.sendMessage(
+            user.telegram_id,
+            `🎉 Игра за бонусы завершена!\n\n` +
+            `💰 Вы набрали: ${bonusesEarned} бонусов\n` +
+            `📊 Всего бонусов: ${bonusesAfter}\n\n` +
+            `${remaining > 0 ? `⏳ Осталось набрать: ${remaining} бонусов до вывода\n\n` : `✅ Вы достигли лимита в 500 бонусов!\n\n`}` +
+            `💡 Для вывода бонусов нужно:\n` +
+            `1. Накопить 500 бонусов\n` +
+            `2. Пополнить игровой баланс на 50% от суммы (250 рублей)\n` +
+            `3. Обратиться на ресепшн в одном из игровых клубов:\n` +
+            `   • Суворова 27а\n` +
+            `   • Ленина 26\n\n` +
+            `🎮 Продолжайте играть и накапливайте бонусы!`
+          );
+        }
+        // Отправляем уведомление если достигли 100 бонусов (только один раз)
+        else if (gameType === 'normal' && bonusesBefore < 100 && bonusesAfter >= 100) {
+          await bot.telegram.sendMessage(
+            user.telegram_id,
+            `🎉 Поздравляем! Вы набрали ${bonusesAfter} бонусов!\n\n` +
+            `💡 Для использования бонусов вам нужно:\n` +
+            `1. Накопить 500 бонусов\n` +
+            `2. Пополнить игровой баланс на 50% от суммы бонусов (250 рублей)\n` +
+            `3. Обратиться на ресепшн в одном из игровых клубов:\n` +
+            `   • Суворова 27а\n` +
+            `   • Ленина 26\n\n` +
+            `🎮 Продолжайте играть и накапливайте бонусы!`
+          );
+        }
+      }
+    } catch (err) {
+      console.error('Error sending bonus notification:', err);
+      // Не прерываем сохранение игры из-за ошибки уведомления
+    }
 
     res.json({ 
       success: true,

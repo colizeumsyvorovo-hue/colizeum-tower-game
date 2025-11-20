@@ -144,14 +144,36 @@ export const addFailedCount = (engine) => {
 }
 
 export const addScore = (engine, isPerfect) => {
-  const { setGameScore, successScore, perfectScore } = engine.getVariable(constant.gameUserOption)
+  const gameUserOption = engine.getVariable(constant.gameUserOption)
+  const { setGameScore, successScore, perfectScore } = gameUserOption || {}
   const lastPerfectCount = engine.getVariable(constant.perfectCount, 0)
   const lastGameScore = engine.getVariable(constant.gameScore)
+  
+  // Для правильного подсчета:
+  // Обычный блок: +1 (successScore)
+  // Perfect блок: +2 (perfectScore)
+  // PERFECT_COUNT используется только для отслеживания последовательных perfect блоков
   const perfect = isPerfect ? lastPerfectCount + 1 : 0
-  const score = lastGameScore + (successScore || 25) + ((perfectScore || 25) * perfect)
+  const scoreIncrement = isPerfect ? (perfectScore || 2) : (successScore || 1)
+  const score = lastGameScore + scoreIncrement
+  
+  console.log('addScore called:', {
+    isPerfect: isPerfect,
+    lastGameScore: lastGameScore,
+    scoreIncrement: scoreIncrement,
+    score: score,
+    hasSetGameScore: !!setGameScore,
+    gameUserOption: gameUserOption
+  })
+  
   engine.setVariable(constant.gameScore, score)
   engine.setVariable(constant.perfectCount, perfect)
-  if (setGameScore) setGameScore(score)
+  if (setGameScore) {
+    console.log('Calling setGameScore with score:', score)
+    setGameScore(score)
+  } else {
+    console.warn('setGameScore is not defined!')
+  }
 }
 
 export const drawYellowString = (engine, option) => {
