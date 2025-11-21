@@ -14,9 +14,29 @@ if (config.telegramBotToken) {
     const user = ctx.from;
 
     try {
-      await getOrCreateUser(user);
+      console.log('[/start] Command received from user:', user.id, user.first_name);
       
+      // Проверяем наличие пользователя
+      if (!user || !user.id) {
+        console.error('[/start] Invalid user data:', user);
+        await ctx.reply('Ошибка: Не удалось получить данные пользователя. Попробуйте позже.');
+        return;
+      }
+
+      // Создаем или получаем пользователя
+      let dbUser;
+      try {
+        dbUser = await getOrCreateUser(user);
+        console.log('[/start] User created/retrieved:', dbUser.id);
+      } catch (dbErr) {
+        console.error('[/start] Database error:', dbErr);
+        // Продолжаем работу даже если есть проблема с БД (для совместимости)
+        dbUser = null;
+      }
+      
+      // Формируем URL игры
       const gameUrl = `${config.frontendUrl}?tgWebAppStartParam=${user.id}`;
+      console.log('[/start] Game URL:', gameUrl);
       
       // Проверяем, является ли URL localhost (для разработки)
       const isLocalhost = config.frontendUrl.includes('localhost') || config.frontendUrl.includes('127.0.0.1');
@@ -30,6 +50,7 @@ if (config.telegramBotToken) {
       
       if (isLocalhost) {
         // Для localhost просто отправляем текст со ссылкой (без кнопки)
+        console.log('[/start] Sending localhost message');
         await ctx.reply(
           welcomeMessage + `\n\n🔗 Откройте ссылку в браузере:\n<a href="${gameUrl}">${gameUrl}</a>`,
           {
@@ -39,6 +60,7 @@ if (config.telegramBotToken) {
         );
       } else {
         // Для production используем Web App кнопку и дополнительные кнопки
+        console.log('[/start] Sending production message with buttons');
         await ctx.reply(
           welcomeMessage,
           {
@@ -68,9 +90,19 @@ if (config.telegramBotToken) {
           }
         );
       }
+      console.log('[/start] Command completed successfully');
     } catch (err) {
-      console.error('Error in /start command:', err);
-      await ctx.reply('Произошла ошибка. Попробуйте позже.');
+      console.error('[/start] Error details:', {
+        message: err.message,
+        stack: err.stack,
+        name: err.name,
+        user: user ? { id: user.id, name: user.first_name } : 'null'
+      });
+      try {
+        await ctx.reply('❌ Произошла ошибка. Попробуйте позже или используйте команду /help для помощи.');
+      } catch (replyErr) {
+        console.error('[/start] Error sending error message:', replyErr);
+      }
     }
   });
 
