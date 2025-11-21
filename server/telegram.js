@@ -61,31 +61,57 @@ if (config.telegramBotToken) {
       } else {
         // Для production используем Web App кнопку и дополнительные кнопки
         console.log('[/start] Sending production message with buttons');
+        
+        // Формируем кнопки правильно для Telegram API
+        const inlineKeyboard = [
+          [
+            {
+              text: '🎮 Начать игру',
+              web_app: {
+                url: gameUrl
+              }
+            }
+          ],
+          [
+            {
+              text: '🏗️ Концепция игры',
+              callback_data: 'info_concept'
+            },
+            {
+              text: '🎲 Как играть',
+              callback_data: 'info_howtoplay'
+            }
+          ],
+          [
+            {
+              text: '💰 Накопительная система',
+              callback_data: 'info_bonus_system'
+            },
+            {
+              text: '🎁 Как вывести бонусы',
+              callback_data: 'info_withdrawal'
+            }
+          ],
+          [
+            {
+              text: '📊 Статистика',
+              callback_data: 'show_stats'
+            },
+            {
+              text: '❓ Помощь',
+              callback_data: 'show_help'
+            }
+          ]
+        ];
+        
+        console.log('[/start] Keyboard structure:', JSON.stringify(inlineKeyboard, null, 2));
+        
         await ctx.reply(
           welcomeMessage,
           {
             parse_mode: 'HTML',
             reply_markup: {
-              inline_keyboard: [
-                [[
-                  {
-                    text: '🎮 Начать игру',
-                    web_app: { url: gameUrl }
-                  }
-                ]],
-                [[
-                  { text: '🏗️ Концепция игры', callback_data: 'info_concept' },
-                  { text: '🎲 Как играть', callback_data: 'info_howtoplay' }
-                ]],
-                [[
-                  { text: '💰 Накопительная система', callback_data: 'info_bonus_system' },
-                  { text: '🎁 Как вывести бонусы', callback_data: 'info_withdrawal' }
-                ]],
-                [[
-                  { text: '📊 Статистика', callback_data: 'show_stats' },
-                  { text: '❓ Помощь', callback_data: 'show_help' }
-                ]]
-              ]
+              inline_keyboard: inlineKeyboard
             }
           }
         );
