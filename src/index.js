@@ -85,14 +85,14 @@ window.TowerGame = (option = {}) => {
   game.endAnimate = endAnimate
   game.paintUnderInstance = background
   
-  // Добавляем снег
-  const snow = new Instance({
-    name: 'snow',
-    action: snowAction,
-    painter: snowPainter
-  })
-  game.addInstance(snow)
-  initSnow(game) // Автоматически определит оптимальное количество для устройства
+  // Снег отключен
+  // const snow = new Instance({
+  //   name: 'snow',
+  //   action: snowAction,
+  //   painter: snowPainter
+  // })
+  // game.addInstance(snow)
+  // initSnow(game) // Автоматически определит оптимальное количество для устройства
   game.addKeyDownListener('enter', () => {
     if (game.debug) game.togglePaused()
   })
