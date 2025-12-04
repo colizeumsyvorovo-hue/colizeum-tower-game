@@ -155,12 +155,12 @@ app.get('/api/game/bonus/check', authMiddleware, async (req, res) => {
 app.post('/api/game/bonus/start', authMiddleware, async (req, res) => {
   try {
     console.log('[/api/game/bonus/start] Request received from user:', req.user.telegramId);
-    
+
     const { getUserByTelegramId, getOrCreateUser } = require('./database');
-    
+
     // Получаем пользователя из базы данных
     let user = await getUserByTelegramId(req.user.telegramId);
-    
+
     // Если пользователя нет, создаем его с данными из токена
     if (!user) {
       console.log('[/api/game/bonus/start] User not found, creating new user');
@@ -181,7 +181,7 @@ app.post('/api/game/bonus/start', authMiddleware, async (req, res) => {
     } else {
       console.log('[/api/game/bonus/start] User found:', user.id);
     }
-    
+
     // Проверяем доступность игры за бонусы
     let bonusInfo;
     try {
@@ -191,12 +191,12 @@ app.post('/api/game/bonus/start', authMiddleware, async (req, res) => {
       console.error('[/api/game/bonus/start] Error checking bonus availability:', bonusErr);
       return res.status(500).json({ error: 'Failed to check bonus game availability', details: bonusErr.message });
     }
-    
+
     if (!bonusInfo.canPlay) {
       console.log('[/api/game/bonus/start] Bonus game not available, nextAvailable:', bonusInfo.nextAvailable);
       return res.status(403).json({ error: 'Bonus game not available yet', nextAvailable: bonusInfo.nextAvailable });
     }
-    
+
     // Записываем попытку сразу при старте игры
     try {
       await recordBonusAttempt(user.id);
@@ -205,7 +205,7 @@ app.post('/api/game/bonus/start', authMiddleware, async (req, res) => {
       console.error('[/api/game/bonus/start] Error recording bonus attempt:', recordErr);
       return res.status(500).json({ error: 'Failed to record bonus attempt', details: recordErr.message });
     }
-    
+
     console.log('[/api/game/bonus/start] Bonus game started successfully for user:', user.id);
     res.json({ success: true, message: 'Bonus game started' });
   } catch (err) {
@@ -481,10 +481,34 @@ app.post('/api/bonus/exchange', authMiddleware, async (req, res) => {
   }
 });
 
+// Система уведомлений о доступности игры за бонусы
+const { sendBonusGameAvailableNotifications } = require('./notifications');
+
+// Запускаем проверку уведомлений каждый час
+let notificationInterval = null;
+function startNotificationScheduler() {
+  // Проверяем сразу при запуске
+  sendBonusGameAvailableNotifications().catch(err => {
+    console.error('Error in initial notification check:', err);
+  });
+  
+  // Затем проверяем каждый час
+  notificationInterval = setInterval(() => {
+    sendBonusGameAvailableNotifications().catch(err => {
+      console.error('Error in scheduled notification check:', err);
+    });
+  }, 60 * 60 * 1000); // Каждый час
+  
+  console.log('🔔 Система уведомлений о доступности игры за бонусы запущена (проверка каждый час)');
+}
+
 // Запуск сервера
 app.listen(config.port, async () => {
   console.log(`🚀 Server running on port ${config.port}`);
   console.log(`🎮 Game available at ${config.frontendUrl}`);
+  
+  // Запускаем систему уведомлений
+  startNotificationScheduler();
 
   // Настройка webhook для Telegram бота
   console.log('🔍 Checking bot configuration...');

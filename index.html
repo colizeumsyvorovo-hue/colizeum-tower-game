@@ -3,7 +3,8 @@
 
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,minimal-ui,viewport-fit=cover">
+  <meta name="viewport"
+    content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,minimal-ui,viewport-fit=cover">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -435,7 +436,7 @@
       box-shadow: 0 8px 20px rgba(17, 153, 142, 0.3);
     }
 
-    .bonus-info > div:first-child {
+    .bonus-info>div:first-child {
       font-size: 1.2rem;
       font-weight: bold;
       margin-bottom: 0.5rem;
@@ -764,8 +765,10 @@
       .btn {
         font-size: 1rem;
         padding: 1rem 1.5rem;
-        min-height: 48px; /* Минимальный размер для удобного нажатия на мобильных */
-        touch-action: manipulation; /* Убирает задержку на мобильных */
+        min-height: 48px;
+        /* Минимальный размер для удобного нажатия на мобильных */
+        touch-action: manipulation;
+        /* Убирает задержку на мобильных */
       }
 
       .game-mode-selection {
@@ -786,7 +789,8 @@
       .mode-card {
         padding: 1.2rem;
         margin-bottom: 0;
-        min-height: 120px; /* Минимальная высота для удобного нажатия */
+        min-height: 120px;
+        /* Минимальная высота для удобного нажатия */
         touch-action: manipulation;
       }
 
@@ -917,7 +921,9 @@
     }
 
     /* Предотвращение выделения текста на мобильных при нажатии */
-    .mode-card, .btn, .pause-button {
+    .mode-card,
+    .btn,
+    .pause-button {
       -webkit-tap-highlight-color: transparent;
       -webkit-touch-callout: none;
       user-select: none;
@@ -985,42 +991,47 @@
         <div>🎁 Игра за бонусы</div>
         <div class="countdown" id="bonusCountdown">Проверка...</div>
       </div>
-      
+
       <!-- Обмен бонусов -->
-      <div class="bonus-exchange-section" style="margin-top: 2rem; background: rgba(255, 255, 255, 0.95); border-radius: 15px; padding: 1.5rem;">
+      <div class="bonus-exchange-section"
+        style="margin-top: 2rem; background: rgba(255, 255, 255, 0.95); border-radius: 15px; padding: 1.5rem;">
         <h3 style="color: #333; margin-bottom: 1rem; text-align: center; font-weight: 700;">💰 Обмен бонусов</h3>
         <p style="color: #666; font-size: 0.9rem; text-align: center; margin-bottom: 1rem;">
           Для получения бонусов необходимо пополнить счет в клубе на 50% от суммы бонусов
         </p>
         <div style="display: flex; gap: 0.5rem; align-items: center; justify-content: center;">
-          <input type="number" id="exchangeBonusesInput" placeholder="Количество бонусов" 
+          <input type="number" id="exchangeBonusesInput" placeholder="Количество бонусов"
             style="flex: 1; padding: 0.75rem; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 1rem; max-width: 200px;"
             min="1" max="500">
-          <button class="btn btn-primary" id="btnExchangeBonuses" 
-            style="padding: 0.75rem 1.5rem; white-space: nowrap;">
+          <button class="btn btn-primary" id="btnExchangeBonuses" style="padding: 0.75rem 1.5rem; white-space: nowrap;">
             Обменять
           </button>
         </div>
-        <div id="exchangeMessage" style="margin-top: 1rem; text-align: center; color: #667eea; font-weight: 600; display: none;"></div>
+        <div id="exchangeMessage"
+          style="margin-top: 1rem; text-align: center; color: #667eea; font-weight: 600; display: none;"></div>
       </div>
-      
+
       <!-- История игр за бонусы -->
       <div class="bonus-history-section" style="margin-top: 2rem;">
-        <h3 style="color: #333; margin-bottom: 1rem; text-align: center; font-weight: 700;">📜 История игр за бонусы</h3>
-        <div id="bonusHistoryList" style="background: rgba(255, 255, 255, 0.95); border-radius: 15px; padding: 1rem; max-height: 300px; overflow-y: auto;">
+        <h3 style="color: #333; margin-bottom: 1rem; text-align: center; font-weight: 700;">📜 История игр за бонусы
+        </h3>
+        <div id="bonusHistoryList"
+          style="background: rgba(255, 255, 255, 0.95); border-radius: 15px; padding: 1rem; max-height: 300px; overflow-y: auto;">
           <div style="text-align: center; padding: 1rem; color: #666;">Загрузка...</div>
         </div>
       </div>
-      
+
       <!-- Мировой топ -->
       <div class="leaderboard-section" style="margin-top: 2rem;">
         <h3 style="color: #333; margin-bottom: 1rem; text-align: center; font-weight: 700;">🏆 Мировой топ</h3>
-        <div id="leaderboardList" style="background: rgba(255, 255, 255, 0.95); border-radius: 15px; padding: 1rem; max-height: 300px; overflow-y: auto;">
+        <div id="leaderboardList"
+          style="background: rgba(255, 255, 255, 0.95); border-radius: 15px; padding: 1rem; max-height: 300px; overflow-y: auto;">
           <div style="text-align: center; padding: 1rem; color: #666;">Загрузка...</div>
         </div>
       </div>
     </div>
-    <button class="btn btn-primary" id="btnBackFromProfile" style="margin-top: 2rem; margin-bottom: 1rem; width: 100%; max-width: 450px;">← К выбору режима</button>
+    <button class="btn btn-primary" id="btnBackFromProfile"
+      style="margin-top: 2rem; margin-bottom: 1rem; width: 100%; max-width: 450px;">← К выбору режима</button>
   </div>
 
   <!-- Game Mode Selection -->
@@ -1150,8 +1161,8 @@
             const demoResponse = await fetch(`${API_BASE}/api/auth/telegram`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ 
-                initData: `user=%7B%22id%22%3A${tgWebAppStartParam}%2C%22first_name%22%3A%22Demo%22%7D&auth_date=${Math.floor(Date.now() / 1000)}&hash=demo` 
+              body: JSON.stringify({
+                initData: `user=%7B%22id%22%3A${tgWebAppStartParam}%2C%22first_name%22%3A%22Demo%22%7D&auth_date=${Math.floor(Date.now() / 1000)}&hash=demo`
               })
             });
             if (demoResponse.ok) {
@@ -1167,7 +1178,7 @@
             console.log('Demo auth failed, using stored token if available');
           }
         }
-        
+
         // Check for stored token (если авторизация через Telegram не удалась)
         if (!authToken) {
           const storedToken = localStorage.getItem('authToken');
@@ -1217,21 +1228,21 @@
         console.log('Updating UI with user:', currentUser);
         const firstName = currentUser.firstName || currentUser.first_name || 'Игрок';
         const username = currentUser.username || '';
-        
+
         const nameEl = $('#profileName');
         const usernameEl = $('#profileUsername');
         const avatarEl = $('#profileAvatar');
-        
+
         console.log('Updating UI elements:', {
           nameEl: nameEl.length,
           usernameEl: usernameEl.length,
           avatarEl: avatarEl.length
         });
-        
+
         nameEl.text(firstName);
         usernameEl.text(username ? `@${username}` : '');
         avatarEl.text(firstName[0].toUpperCase());
-        
+
         console.log('Elements text after update - Name:', nameEl.text(), 'Username:', usernameEl.text(), 'Avatar:', avatarEl.text());
         console.log('UI updated - Name:', firstName, 'Username:', username, 'Avatar:', firstName[0].toUpperCase());
       } else {
@@ -1242,21 +1253,21 @@
     // Event Listeners
     function setupEventListeners() {
       // Используем делегирование для всех кнопок с поддержкой touch
-      $(document).on('click touchstart', '#btnProfile', function(e) {
+      $(document).on('click touchstart', '#btnProfile', function (e) {
         e.preventDefault();
         e.stopPropagation();
         console.log('btnProfile clicked');
         showProfile();
       });
-      
-      $(document).on('click touchstart', '#btnProfileFromMode', function(e) {
+
+      $(document).on('click touchstart', '#btnProfileFromMode', function (e) {
         e.preventDefault();
         e.stopPropagation();
         console.log('btnProfileFromMode clicked');
         showProfile();
       });
-      
-      $(document).on('click touchstart', '#btnBackFromProfile', function(e) {
+
+      $(document).on('click touchstart', '#btnBackFromProfile', function (e) {
         e.preventDefault();
         e.stopPropagation();
         console.log('btnBackFromProfile clicked');
@@ -1266,23 +1277,23 @@
         // Показываем меню выбора режима
         showGameModeSelection();
       });
-      
+
       // Exchange bonuses
-      $(document).on('click touchstart', '#btnExchangeBonuses', async function(e) {
+      $(document).on('click touchstart', '#btnExchangeBonuses', async function (e) {
         e.preventDefault();
         e.stopPropagation();
-        
+
         const bonusesAmount = parseInt($('#exchangeBonusesInput').val());
         if (!bonusesAmount || bonusesAmount <= 0) {
           alert('Введите количество бонусов для обмена');
           return;
         }
-        
+
         if (!authToken) {
           alert('Требуется авторизация');
           return;
         }
-        
+
         try {
           const response = await fetch(`${API_BASE}/api/bonus/exchange`, {
             method: 'POST',
@@ -1292,7 +1303,7 @@
             },
             body: JSON.stringify({ bonusesAmount })
           });
-          
+
           if (response.ok) {
             const data = await response.json();
             $('#exchangeMessage').text(data.message).css('display', 'block').css('color', '#667eea');
@@ -1308,48 +1319,48 @@
           $('#exchangeMessage').text('Ошибка при обмене бонусов').css('display', 'block').css('color', '#e74c3c');
         }
       });
-      
+
       // Используем делегирование событий для кнопок режима игры (поддержка touch для мобильных)
-      $(document).on('click touchstart', '#modeNormal', function(e) {
+      $(document).on('click touchstart', '#modeNormal', function (e) {
         e.preventDefault();
         e.stopPropagation();
         console.log('Normal mode clicked, gameStart:', gameStart);
-        
+
         // Проверяем, что мы действительно в меню выбора режима
         const gameModeSelection = $('#gameModeSelection');
         if (gameModeSelection.hasClass('hide') || gameModeSelection.css('display') === 'none') {
           console.log('Menu is hidden, ignoring click');
           return false;
         }
-        
+
         // Проверяем, что игра не запущена
         if (gameStart) {
           console.log('Game is already started, ignoring click');
           return false;
         }
-        
+
         startGame('normal');
         return false;
       });
-      
-      $(document).on('click touchstart', '#modeBonus', function(e) {
+
+      $(document).on('click touchstart', '#modeBonus', function (e) {
         e.preventDefault();
         e.stopPropagation();
         console.log('Bonus mode clicked, gameStart:', gameStart);
-        
+
         // Проверяем, что мы действительно в меню выбора режима
         const gameModeSelection = $('#gameModeSelection');
         if (gameModeSelection.hasClass('hide') || gameModeSelection.css('display') === 'none') {
           console.log('Menu is hidden, ignoring click');
           return false;
         }
-        
+
         // Проверяем, что игра не запущена
         if (gameStart) {
           console.log('Game is already started, ignoring click');
           return false;
         }
-        
+
         if (!$(this).hasClass('disabled')) {
           startGame('bonus');
         } else {
@@ -1363,6 +1374,12 @@
         e.stopPropagation();
         console.log('btnPlayAgain clicked');
         $('#gameOverModal').addClass('hide').css('display', 'none');
+        
+        // Обновляем статус игры за бонусы перед показом меню (если была игра за бонусы)
+        if (currentGameType === 'bonus') {
+          updateBonusGameStatus();
+        }
+        
         showGameModeSelection();
       });
 
@@ -1371,6 +1388,12 @@
         e.stopPropagation();
         console.log('btnBackToMenu clicked');
         $('#gameOverModal').addClass('hide').css('display', 'none');
+        
+        // Обновляем статус игры за бонусы перед показом меню
+        if (currentGameType === 'bonus') {
+          updateBonusGameStatus();
+        }
+        
         showGameModeSelection();
       });
 
@@ -1435,7 +1458,7 @@
       $('#loading').addClass('hide');
       $('#pauseModal').addClass('hide');
       $('#gameOverModal').addClass('hide');
-      
+
       // Показываем экран профиля с максимальным приоритетом
       $('#profileScreen').removeClass('hide');
       $('.profile').removeClass('hide'); // Убеждаемся, что содержимое профиля видно
@@ -1447,7 +1470,7 @@
       $('.profile').css('display', 'block'); // Убеждаемся, что .profile виден
       console.log('Profile screen shown, display:', $('#profileScreen').css('display'), 'z-index:', $('#profileScreen').css('z-index'));
       console.log('Profile content visible:', $('.profile').css('display'), $('.profile').hasClass('hide'));
-      
+
       // Загружаем данные профиля
       loadProfileData();
     }
@@ -1484,20 +1507,20 @@
           const bestScoreEl = $('#statBestScore');
           const bonusesEl = $('#statBonuses');
           const rankEl = $('#statRank');
-          
+
           console.log('Updating stats elements:', {
             gamesEl: gamesEl.length,
             bestScoreEl: bestScoreEl.length,
             bonusesEl: bonusesEl.length,
             rankEl: rankEl.length
           });
-          
+
           gamesEl.text(stats.games_count || 0);
           bestScoreEl.text(stats.best_score || 0);
           bonusesEl.text(stats.total_bonuses || 0);
           const rank = data.rank;
           rankEl.text(rank ? `#${rank}` : '-');
-          
+
           console.log('Profile stats updated:', {
             games: stats.games_count,
             bestScore: stats.best_score,
@@ -1524,10 +1547,10 @@
 
           // Загружаем историю игр за бонусы
           loadBonusHistory();
-          
+
           // Загружаем мировой топ
           loadLeaderboard();
-          
+
           // Устанавливаем максимальное значение для обмена бонусов
           const currentBonuses = stats.total_bonuses || 0;
           $('#exchangeBonusesInput').attr('max', Math.min(currentBonuses, 500));
@@ -1569,24 +1592,24 @@
 
     function displayBonusHistory(history) {
       const listEl = $('#bonusHistoryList');
-      
+
       if (!history || history.length === 0) {
         listEl.html('<div style="text-align: center; padding: 1rem; color: #666;">Пока нет игр за бонусы</div>');
         return;
       }
 
       let html = '<div style="font-size: 0.85rem;">';
-      
+
       history.forEach((game, index) => {
         const date = new Date(game.played_at);
-        const dateStr = date.toLocaleDateString('ru-RU', { 
-          day: '2-digit', 
-          month: '2-digit', 
+        const dateStr = date.toLocaleDateString('ru-RU', {
+          day: '2-digit',
+          month: '2-digit',
           year: 'numeric',
           hour: '2-digit',
           minute: '2-digit'
         });
-        
+
         html += `
           <div style="display: flex; justify-content: space-between; align-items: center; padding: 1rem; border-bottom: 1px solid rgba(0, 0, 0, 0.08); transition: background 0.3s; border-radius: 8px; margin-bottom: 0.5rem; background: linear-gradient(135deg, rgba(102, 126, 234, 0.05) 0%, rgba(118, 75, 162, 0.05) 100%);">
             <div style="flex: 1;">
@@ -1603,7 +1626,7 @@
           </div>
         `;
       });
-      
+
       html += '</div>';
       listEl.html(html);
     }
@@ -1630,20 +1653,20 @@
 
     function displayLeaderboard(leaderboard, userRank, userBestScore) {
       const listEl = $('#leaderboardList');
-      
+
       if (!leaderboard || leaderboard.length === 0) {
         listEl.html('<div style="text-align: center; padding: 1rem; color: #666;">Пока нет игроков в топе</div>');
         return;
       }
 
       let html = '<div style="font-size: 0.85rem;">';
-      
+
       leaderboard.forEach((player, index) => {
         const isCurrentUser = player.best_score === userBestScore && userRank === index + 1;
         const medal = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : `${index + 1}.`;
         const name = player.first_name || player.username || 'Игрок';
         const username = player.username ? `@${player.username}` : '';
-        
+
         html += `
           <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.7rem; border-bottom: 1px solid #eee; ${isCurrentUser ? 'background: rgba(102, 126, 234, 0.1); font-weight: bold;' : ''}">
             <div style="display: flex; align-items: center; gap: 0.5rem; flex: 1;">
@@ -1660,21 +1683,21 @@
           </div>
         `;
       });
-      
+
       html += '</div>';
       listEl.html(html);
     }
 
     async function showGameModeSelection() {
       console.log('showGameModeSelection called, gameStart:', gameStart);
-      
+
       // Если игра запущена, но мы явно хотим показать меню (например, из exitToMenu),
       // то сбрасываем gameStart
       if (gameStart) {
         console.log('Game is running, but showing menu anyway (forced)');
         gameStart = false;
       }
-      
+
       // Проверяем, виден ли canvas (игра запускается)
       const canvasVisible = !$('#canvas-container').hasClass('hide');
       // Не блокируем показ меню, если gameStart уже сброшен
@@ -1682,9 +1705,9 @@
         console.log('Game is starting, not showing menu. gameStart:', gameStart, 'canvas visible:', canvasVisible);
         return;
       }
-      
+
       console.log('Showing game mode selection');
-      
+
       // Скрываем все остальные экраны
       $('#mainMenu').addClass('hide').css('display', 'none');
       $('#profileScreen').addClass('hide').css('display', 'none');
@@ -1693,10 +1716,10 @@
       $('#btnPause').addClass('hide');
       $('#pauseModal').addClass('hide');
       $('#gameOverModal').addClass('hide');
-      
+
       // Показываем меню выбора режима
       $('#gameModeSelection').removeClass('hide').css('display', 'flex');
-      
+
       console.log('Game mode selection shown');
 
       // Check bonus game availability
@@ -1706,7 +1729,7 @@
     // Функция для обновления статуса игры за бонусы
     async function updateBonusGameStatus() {
       if (!authToken) return;
-      
+
       try {
         const response = await fetch(`${API_BASE}/api/game/bonus/check`, {
           headers: { 'Authorization': `Bearer ${authToken}` }
@@ -1763,7 +1786,7 @@
               const error = await response.json();
               console.error('Bonus game start error:', error);
               errorMessage = error.error || error.details || errorMessage;
-              
+
               // Если игра недоступна, показываем более понятное сообщение
               if (response.status === 403 && error.nextAvailable) {
                 const nextAvailable = new Date(error.nextAvailable);
@@ -1779,7 +1802,7 @@
             alert(errorMessage);
             return;
           }
-          
+
           const result = await response.json();
           console.log('Bonus game started successfully:', result);
         } catch (err) {
@@ -1791,7 +1814,7 @@
 
       currentGameType = gameType;
       console.log('startGame called with type:', gameType);
-      
+
       // Скрываем все меню принудительно
       $('#mainMenu').addClass('hide').css('display', 'none');
       $('#profileScreen').addClass('hide').css('display', 'none');
@@ -1799,12 +1822,12 @@
       $('#pauseModal').addClass('hide');
       $('#gameOverModal').addClass('hide');
       $('#profileScreen').addClass('hide');
-      
+
       // Показываем canvas
       $('#canvas-container').removeClass('hide');
       $('#canvas').removeClass('hide');
       $('#btnPause').removeClass('hide');
-      
+
       console.log('Menu hidden, canvas shown');
 
       // Сбрасываем состояние игры
@@ -1838,7 +1861,7 @@
       // Устанавливаем флаг, что игра запускается, чтобы предотвратить возврат в меню
       gameStart = false; // Сбрасываем, чтобы игра могла начаться после клика на canvas
       initGame();
-      
+
       console.log('Game initialized, waiting for canvas click to start');
     }
 
@@ -1852,45 +1875,45 @@
         finalWidth = Math.ceil(gameHeight / ratio);
       }
 
-  const option = {
+      const option = {
         width: finalWidth,
-    height: gameHeight,
-    canvasId: 'canvas',
-    soundOn: true,
+        height: gameHeight,
+        canvasId: 'canvas',
+        soundOn: true,
         // В обычной игре жизни бесконечные, в игре за бонусы - 3 жизни
         infiniteLives: currentGameType === 'normal',
         // Очки: 1 за обычный блок, 2 за perfect блок
         successScore: 1,
         perfectScore: 2,
-    setGameScore: function (s) {
+        setGameScore: function (s) {
           // Логируем ВСЕ вызовы, чтобы понять, вызывается ли функция
           console.log('setGameScore CALLED with:', s, 'current score:', score, 'game exists:', !!game, 'gameStart:', gameStart);
-          
+
           // Оптимизация: проверяем только если счет изменился
           if (score === s) {
             console.log('setGameScore: score unchanged, skipping');
             return;
           }
-          
+
           const oldScore = score;
           score = s;
-          
+
           // Оптимизация производительности: проверяем блоки только если счет увеличился
           if (score <= oldScore) {
             console.log('setGameScore: score did not increase, skipping');
             return;
           }
-          
+
           if (!game || !game.getVariable) {
             console.log('setGameScore: game or getVariable not available');
             return;
           }
-          
+
           // Отслеживаем блоки по изменению SUCCESS_COUNT
           try {
             const currentSuccessCount = game.getVariable('SUCCESS_COUNT', 0);
             const currentPerfectCount = game.getVariable('PERFECT_COUNT', 0);
-            
+
             console.log('setGameScore called:', {
               score: score,
               oldScore: oldScore,
@@ -1899,14 +1922,14 @@
               currentPerfectCount: currentPerfectCount,
               previousPerfectCount: previousPerfectCount
             });
-            
+
             // Проверяем, появился ли новый блок (successCount увеличился)
             if (currentSuccessCount > lastTrackedSuccessCount) {
               // PERFECT_COUNT устанавливается в addScore ПЕРЕД вызовом setGameScore
               // Для perfect блока: PERFECT_COUNT = lastPerfectCount + 1 (всегда > 0)
               // Для обычного блока: PERFECT_COUNT = 0
               // Простая логика: если PERFECT_COUNT > 0, значит это perfect блок
-              
+
               if (currentPerfectCount > 0) {
                 // Perfect блок
                 perfectCount++;
@@ -1932,7 +1955,7 @@
                 game.setVariable('GAME_BONUSES', currentBonuses);
                 console.log('📦 Normal block! Bonuses:', currentBonuses, 'added:', bonusToAdd, 'PERFECT_COUNT:', currentPerfectCount);
               }
-              
+
               // Обновляем отслеживание
               lastTrackedSuccessCount = currentSuccessCount;
               previousPerfectCount = currentPerfectCount;
@@ -1943,11 +1966,11 @@
             // Тихая обработка ошибок для производительности
             console.error('Error in setGameScore bonus calculation:', e);
           }
-    },
-    setGameSuccess: function (s) {
+        },
+        setGameSuccess: function (s) {
           successCount = s;
-    },
-    setGameFailed: function (f) {
+        },
+        setGameFailed: function (f) {
           console.log('setGameFailed called with:', f, 'gameType:', currentGameType, 'gameStart:', gameStart, 'infiniteLives:', currentGameType === 'normal');
           // Не обрабатываем завершение игры, если игра еще не запущена
           if (!gameStart) {
@@ -1972,7 +1995,7 @@
         }
       };
 
-  function gameReady() {
+      function gameReady() {
         // Уничтожаем старую игру если она существует
         if (game) {
           try {
@@ -1988,13 +2011,13 @@
         console.log('Creating TowerGame with option:', option);
         console.log('setGameScore in option:', typeof option.setGameScore);
         game = TowerGame(option);
-        
+
         // Проверяем, что setGameScore передался в игру
         const gameUserOption = game ? game.getVariable('GAME_USER_OPTION') : null;
         console.log('Game created, gameUserOption:', gameUserOption);
         console.log('setGameScore in gameUserOption:', gameUserOption ? typeof gameUserOption.setGameScore : 'N/A');
-        
-    game.load(function () {
+
+        game.load(function () {
           game.init();
           // Убрано автовоспроизведение звука - будет включаться при старте игры
           canvasReady = true;
@@ -2023,7 +2046,7 @@
 
       // Если загрузка завершена (100%), скрываем экран загрузки
       if (percent >= 100) {
-    setTimeout(function () {
+        setTimeout(function () {
           // Принудительно скрываем загрузку
           $('#loading').addClass('hide').css('display', 'none');
           // Принудительно показываем экран выбора режима игры, если игра не запущена И canvas скрыт
@@ -2040,7 +2063,7 @@
       // Игра инициализируется только при выборе режима
       console.log('hideLoading called, domReady:', domReady, 'game:', game, 'gameStart:', gameStart);
       if (domReady) {
-    setTimeout(function () {
+        setTimeout(function () {
           // Принудительно скрываем загрузку
           $('#loading').addClass('hide').css('display', 'none');
           // Если игра не запущена И canvas скрыт, показываем экран выбора режима игры
@@ -2049,7 +2072,7 @@
             showGameModeSelection();
           }
         }, 500);
-  } else {
+      } else {
         // Если domReady еще false, попробуем через небольшую задержку
         setTimeout(function () {
           if (domReady) {
@@ -2061,7 +2084,7 @@
 
     function pauseGame() {
       console.log('pauseGame called, game:', !!game, 'gameStart:', gameStart, 'gameType:', currentGameType);
-      
+
       if (!game || !gameStart) {
         console.log('Cannot pause: game not ready or not started');
         return;
@@ -2079,7 +2102,7 @@
       // Показываем модальное окно паузы
       $('#pauseModal').removeClass('hide').css('display', 'flex');
       $('#canvas-container').addClass('hide');
-      
+
       console.log('Game paused, modal shown');
     }
 
@@ -2101,7 +2124,7 @@
 
       // Останавливаем игру СРАЗУ, чтобы showGameModeSelection мог показать меню
       gameStart = false;
-      
+
       if (game) {
         // Останавливаем игровой цикл
         if (game.setVariable) {
@@ -2111,7 +2134,7 @@
             console.log('Error setting GAME_START_NOW:', e);
           }
         }
-        
+
         // Останавливаем звук
         if (game.pauseBgm) {
           try {
@@ -2120,7 +2143,7 @@
             console.log('Error pausing BGM:', e);
           }
         }
-        
+
         // Останавливаем игру, если она на паузе
         if (game.togglePaused && game.isPaused && game.isPaused()) {
           try {
@@ -2150,16 +2173,16 @@
 
     async function endGame() {
       console.log('endGame called, gameStart:', gameStart, 'currentGameType:', currentGameType, 'score:', score);
-      
+
       // Не завершаем игру, если она еще не запущена
       if (!gameStart) {
         console.log('Game not started, ignoring endGame call');
         return;
       }
-      
+
       // Устанавливаем флаг, что игра завершена СРАЗУ, чтобы предотвратить повторные вызовы
       gameStart = false;
-      
+
       // Останавливаем игру полностью
       if (game) {
         // Останавливаем игровой цикл
@@ -2204,16 +2227,25 @@
             const data = await response.json();
             console.log('Game saved successfully, bonusesEarned:', data.bonusesEarned);
             
-            // Если это игра за бонусы, обновляем статус доступности
-            if (currentGameType === 'bonus') {
-              // Обновляем статус игры за бонусы после завершения
-              updateBonusGameStatus();
-            }
-            
             showGameOverModal(data.bonusesEarned, currentGameType);
+            
+            // Если это игра за бонусы, обновляем статус доступности ПОСЛЕ показа модального окна
+            if (currentGameType === 'bonus') {
+              // Небольшая задержка, чтобы модальное окно успело показаться
+              setTimeout(() => {
+                updateBonusGameStatus();
+              }, 500);
+            }
           } else {
             console.log('Game save failed, status:', response.status);
             showGameOverModal(0, currentGameType);
+            
+            // Обновляем статус даже при ошибке сохранения
+            if (currentGameType === 'bonus') {
+              setTimeout(() => {
+                updateBonusGameStatus();
+              }, 500);
+            }
           }
         } catch (err) {
           console.error('Save game error:', err);
@@ -2227,7 +2259,7 @@
 
     function showGameOverModal(bonusesEarned, gameType = null) {
       console.log('showGameOverModal called, bonusesEarned:', bonusesEarned, 'gameType:', gameType, 'score:', score);
-      
+
       // Останавливаем игру полностью перед показом модального окна
       if (game) {
         // Останавливаем игровой цикл
@@ -2248,14 +2280,14 @@
           }
         }
       }
-      
+
       // Устанавливаем флаг, что игра завершена
       gameStart = false;
-      
+
       // Скрываем canvas и кнопку паузы
       $('#canvas-container').addClass('hide');
       $('#btnPause').addClass('hide');
-      
+
       // Скрываем другие модальные окна
       $('#pauseModal').addClass('hide');
 
@@ -2271,7 +2303,7 @@
       } else {
         totalBonuses = currentBonuses;
       }
-      
+
       // Показываем бонусы вместо очков
       $('#finalScore').text(totalBonuses || 0);
       const bonusEarnedEl = $('#bonusEarned');
@@ -2308,6 +2340,14 @@
       modalEl.css('z-index', '10000');
       modalEl.css('pointer-events', 'auto');
       console.log('Game over modal shown, display:', modalEl.css('display'), 'z-index:', modalEl.css('z-index'), 'gameType:', currentGameType);
+      
+      // Для игры за бонусы сразу обновляем статус, чтобы таймер отображался правильно при возврате в меню
+      if (gameType === 'bonus') {
+        // Небольшая задержка, чтобы модальное окно успело показаться
+        setTimeout(() => {
+          updateBonusGameStatus();
+        }, 300);
+      }
     }
 
     // Start game on click/touch - только на canvas
@@ -2315,7 +2355,7 @@
     $(document).on('click touchstart', '#canvas', function (e) {
       e.stopPropagation();
       e.preventDefault();
-      
+
       // Проверяем, что мы действительно в игровом экране, а не в меню
       // Zepto не поддерживает :visible, используем проверку через класс и display
       const gameModeSelection = $('#gameModeSelection');
@@ -2323,21 +2363,21 @@
         console.log('Menu is visible, ignoring canvas click');
         return false;
       }
-      
+
       // Проверяем, что canvas видим и игра не запущена
       const canvasContainer = $('#canvas-container');
       if (canvasContainer.hasClass('hide') || canvasContainer.css('display') === 'none') {
         console.log('Canvas is hidden, ignoring click');
         return false;
       }
-      
+
       // Проверяем видимость canvas через класс (Zepto не поддерживает :visible)
       if (game && !gameStart && !canvasContainer.hasClass('hide') && canvasReady) {
         console.log('Starting game on canvas click/touch');
-        
+
         // Устанавливаем флаг ДО вызова game.start(), чтобы setGameFailed не вызывал endGame
         gameStart = true;
-        
+
         // Инициализируем счетчик бонусов в игре (всегда 0 при старте)
         if (game && game.setVariable) {
           currentBonuses = 0; // Сбрасываем бонусы при старте
@@ -2348,10 +2388,10 @@
           game.setVariable('GAME_BONUSES', 0);
           console.log('Game started, bonuses reset to 0');
         }
-        
+
         // Предотвращаем возврат в меню
         $('.game-mode-selection').addClass('hide').css('display', 'none');
-        
+
         // Воспроизведение звука после взаимодействия пользователя
         if (game && game.playBgm) {
           try {
@@ -2360,7 +2400,7 @@
             console.log('Sound play requires user interaction');
           }
         }
-        
+
         // Запускаем игру
         try {
           game.start();
@@ -2373,7 +2413,7 @@
     });
 
     // Window load
-  window.addEventListener('load', function () {
+    window.addEventListener('load', function () {
       console.log('Window loaded');
       domReady = true;
       init();

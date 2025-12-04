@@ -203,21 +203,51 @@ export const blockAction = (instance, engine, time) => {
   }
 }
 
+// Кеширование изображения веревки
+let cachedBlockRopeImage = null
+
 const drawSwingBlock = (instance, engine) => {
-  const bl = engine.getImg('blockRope')
-  engine.ctx.drawImage(
-    bl, instance.weightX - instance.calWidth
-    , instance.weightY
-    , instance.width, instance.height * 1.3
-  )
-  const leftX = instance.weightX - instance.calWidth
-  engine.debugLineY(leftX)
+  // Кешируем изображение при первом использовании
+  if (!cachedBlockRopeImage) {
+    cachedBlockRopeImage = engine.getImg('blockRope')
+  }
+  
+  if (cachedBlockRopeImage) {
+    engine.ctx.drawImage(
+      cachedBlockRopeImage,
+      instance.weightX - instance.calWidth,
+      instance.weightY,
+      instance.width,
+      instance.height * 1.3
+    )
+  }
+  
+  // Отладочная линия только в режиме отладки
+  if (engine.debug) {
+    const leftX = instance.weightX - instance.calWidth
+    engine.debugLineY(leftX)
+  }
 }
+
+// Кеширование изображений блоков для оптимизации
+let cachedBlockImage = null
+let cachedPerfectBlockImage = null
 
 const drawBlock = (instance, engine) => {
   const { perfect } = instance
-  const bl = engine.getImg(perfect ? 'block-perfect' : 'block')
-  engine.ctx.drawImage(bl, instance.x, instance.y, instance.width, instance.height)
+  
+  // Кешируем изображения при первом использовании
+  if (!cachedBlockImage) {
+    cachedBlockImage = engine.getImg('block')
+  }
+  if (!cachedPerfectBlockImage) {
+    cachedPerfectBlockImage = engine.getImg('block-perfect')
+  }
+  
+  const bl = perfect ? cachedPerfectBlockImage : cachedBlockImage
+  if (bl) {
+    engine.ctx.drawImage(bl, instance.x, instance.y, instance.width, instance.height)
+  }
 }
 
 const drawRotatedBlock = (instance, engine) => {

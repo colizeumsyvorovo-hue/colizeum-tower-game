@@ -39,11 +39,21 @@ export const hookAction = (instance, engine, time) => {
     (Math.cos(instance.angle) * ropeHeight)
 }
 
+// Кеширование изображения крюка для оптимизации
+let cachedHookImage = null
+
 export const hookPainter = (instance, engine) => {
   const { ctx } = engine
   const ropeHeight = engine.getVariable(constant.ropeHeight)
   const ropeWidth = ropeHeight * 0.1
-  const hook = engine.getImg('hook')
+  
+  // Кешируем изображение крюка
+  if (!cachedHookImage) {
+    cachedHookImage = engine.getImg('hook')
+  }
+  
+  if (!cachedHookImage) return
+  
   ctx.save()
   ctx.translate(instance.x, instance.y)
   ctx.rotate((Math.PI * 2) - instance.angle)

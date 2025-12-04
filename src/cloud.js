@@ -45,9 +45,20 @@ export const cloudAction = (instance, engine) => {
   }
 }
 
+// Кеширование изображений облаков для оптимизации
+const cloudImageCache = {}
+
 export const cloudPainter = (instance, engine) => {
   const { ctx } = engine
-  const cloud = engine.getImg(instance.imgName)
-  ctx.drawImage(cloud, instance.x, instance.y, instance.width, instance.height)
+  
+  // Кешируем изображения облаков
+  if (!cloudImageCache[instance.imgName]) {
+    cloudImageCache[instance.imgName] = engine.getImg(instance.imgName)
+  }
+  
+  const cloud = cloudImageCache[instance.imgName]
+  if (cloud) {
+    ctx.drawImage(cloud, instance.x, instance.y, instance.width, instance.height)
+  }
 }
 

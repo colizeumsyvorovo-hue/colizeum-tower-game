@@ -176,6 +176,9 @@ export const addScore = (engine, isPerfect) => {
   }
 }
 
+// Кеширование градиентов для оптимизации
+const gradientCache = {}
+
 export const drawYellowString = (engine, option) => {
   const {
     string, size, x, y, textAlign, fontName = 'wenxue', fontWeight = 'normal'
@@ -183,12 +186,19 @@ export const drawYellowString = (engine, option) => {
   const { ctx } = engine
   const fontSize = size
   const lineSize = fontSize * 0.1
+  
+  // Кешируем градиент по Y координате (для одинаковых Y используем один градиент)
+  const gradientKey = Math.floor(y / 10) * 10 // Округляем до 10 пикселей
+  if (!gradientCache[gradientKey]) {
+    const gradient = ctx.createLinearGradient(0, 0, 0, gradientKey || y)
+    gradient.addColorStop(0, '#FAD961')
+    gradient.addColorStop(1, '#F76B1C')
+    gradientCache[gradientKey] = gradient
+  }
+  
   ctx.save()
   ctx.beginPath()
-  const gradient = ctx.createLinearGradient(0, 0, 0, y)
-  gradient.addColorStop(0, '#FAD961')
-  gradient.addColorStop(1, '#F76B1C')
-  ctx.fillStyle = gradient
+  ctx.fillStyle = gradientCache[gradientKey]
   ctx.lineWidth = lineSize
   ctx.strokeStyle = '#FFF'
   ctx.textAlign = textAlign || 'center'
