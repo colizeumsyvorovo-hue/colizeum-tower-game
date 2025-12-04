@@ -58,7 +58,7 @@ export const hookPainter = (instance, engine) => {
   ctx.translate(instance.x, instance.y)
   ctx.rotate((Math.PI * 2) - instance.angle)
   ctx.translate(-instance.x, -instance.y)
-  engine.ctx.drawImage(hook, instance.x - (ropeWidth / 2), instance.y, ropeWidth, ropeHeight + 5)
+  engine.ctx.drawImage(cachedHookImage, instance.x - (ropeWidth / 2), instance.y, ropeWidth, ropeHeight + 5)
   ctx.restore()
 }
 
