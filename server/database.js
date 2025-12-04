@@ -299,11 +299,13 @@ const canPlayBonusGame = async (userId) => {
   return new Promise((resolve, reject) => {
     db.get('SELECT * FROM bonus_attempts WHERE user_id = ?', [userId], async (err, row) => {
       if (err) {
+        console.error('Error checking bonus game availability:', err);
         reject(err);
         return;
       }
 
       if (!row) {
+        console.log(`User ${userId} has no bonus attempts - can play`);
         resolve({ canPlay: true, nextAvailable: null });
         return;
       }
@@ -311,11 +313,24 @@ const canPlayBonusGame = async (userId) => {
       const lastAttempt = new Date(row.last_attempt);
       const now = new Date();
       const timeDiff = now - lastAttempt;
+      
+      console.log(`User ${userId} bonus game check:`, {
+        lastAttempt: lastAttempt.toISOString(),
+        now: now.toISOString(),
+        timeDiff: timeDiff,
+        cooldown: config.bonusGameCooldown,
+        canPlay: timeDiff >= config.bonusGameCooldown
+      });
 
+      // Проверяем, прошло ли 24 часа с последней попытки
       if (timeDiff >= config.bonusGameCooldown) {
+        console.log(`User ${userId} can play - 24 hours passed`);
         resolve({ canPlay: true, nextAvailable: null });
       } else {
         const nextAvailable = new Date(lastAttempt.getTime() + config.bonusGameCooldown);
+        const hoursLeft = Math.floor((config.bonusGameCooldown - timeDiff) / (1000 * 60 * 60));
+        const minutesLeft = Math.floor(((config.bonusGameCooldown - timeDiff) % (1000 * 60 * 60)) / (1000 * 60));
+        console.log(`User ${userId} cannot play - ${hoursLeft}h ${minutesLeft}m left`);
         resolve({ canPlay: false, nextAvailable });
       }
     });
