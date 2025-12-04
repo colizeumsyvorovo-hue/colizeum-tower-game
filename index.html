@@ -1700,34 +1700,40 @@
       console.log('Game mode selection shown');
 
       // Check bonus game availability
-      if (authToken) {
-        try {
-          const response = await fetch(`${API_BASE}/api/game/bonus/check`, {
-            headers: { 'Authorization': `Bearer ${authToken}` }
-          });
+      updateBonusGameStatus();
+    }
 
-          if (response.ok) {
-            const bonusInfo = await response.json();
-            const modeBonus = $('#modeBonus');
-            const bonusBadge = $('#bonusBadge');
-            const bonusModeInfo = $('#bonusModeInfo');
+    // Функция для обновления статуса игры за бонусы
+    async function updateBonusGameStatus() {
+      if (!authToken) return;
+      
+      try {
+        const response = await fetch(`${API_BASE}/api/game/bonus/check`, {
+          headers: { 'Authorization': `Bearer ${authToken}` }
+        });
 
-            if (bonusInfo.canPlay) {
-              modeBonus.removeClass('disabled');
-              bonusBadge.text('✅ Доступно');
-              bonusModeInfo.text('');
-            } else {
-              modeBonus.addClass('disabled');
-              bonusBadge.text('⏰ Недоступно');
-              const nextAvailable = new Date(bonusInfo.nextAvailable);
-              const hours = Math.floor((nextAvailable - new Date()) / (1000 * 60 * 60));
-              const minutes = Math.floor(((nextAvailable - new Date()) % (1000 * 60 * 60)) / (1000 * 60));
-              bonusModeInfo.text(`Доступно через: ${hours}ч ${minutes}м`);
-            }
+        if (response.ok) {
+          const bonusInfo = await response.json();
+          const modeBonus = $('#modeBonus');
+          const bonusBadge = $('#bonusBadge');
+          const bonusModeInfo = $('#bonusModeInfo');
+
+          if (bonusInfo.canPlay) {
+            modeBonus.removeClass('disabled');
+            bonusBadge.text('✅ Доступно');
+            bonusModeInfo.text('');
+          } else {
+            modeBonus.addClass('disabled');
+            bonusBadge.text('⏰ Недоступно');
+            const nextAvailable = new Date(bonusInfo.nextAvailable);
+            const now = new Date();
+            const hours = Math.floor((nextAvailable - now) / (1000 * 60 * 60));
+            const minutes = Math.floor(((nextAvailable - now) % (1000 * 60 * 60)) / (1000 * 60));
+            bonusModeInfo.text(`Доступно через: ${hours}ч ${minutes}м`);
           }
-        } catch (err) {
-          console.error('Check bonus game error:', err);
         }
+      } catch (err) {
+        console.error('Check bonus game error:', err);
       }
     }
 
@@ -2197,10 +2203,17 @@
           if (response.ok) {
             const data = await response.json();
             console.log('Game saved successfully, bonusesEarned:', data.bonusesEarned);
-            showGameOverModal(data.bonusesEarned);
+            
+            // Если это игра за бонусы, обновляем статус доступности
+            if (currentGameType === 'bonus') {
+              // Обновляем статус игры за бонусы после завершения
+              updateBonusGameStatus();
+            }
+            
+            showGameOverModal(data.bonusesEarned, currentGameType);
           } else {
             console.log('Game save failed, status:', response.status);
-            showGameOverModal(0);
+            showGameOverModal(0, currentGameType);
           }
         } catch (err) {
           console.error('Save game error:', err);
@@ -2212,8 +2225,8 @@
       }
     }
 
-    function showGameOverModal(bonusesEarned) {
-      console.log('showGameOverModal called, bonusesEarned:', bonusesEarned, 'score:', score);
+    function showGameOverModal(bonusesEarned, gameType = null) {
+      console.log('showGameOverModal called, bonusesEarned:', bonusesEarned, 'gameType:', gameType, 'score:', score);
       
       // Останавливаем игру полностью перед показом модального окна
       if (game) {
@@ -2263,7 +2276,15 @@
       $('#finalScore').text(totalBonuses || 0);
       const bonusEarnedEl = $('#bonusEarned');
 
-      if (bonusesEarned > 0) {
+      // Для игры за бонусы всегда показываем уведомление о бонусах (даже если 0)
+      if (gameType === 'bonus') {
+        bonusEarnedEl.removeClass('hide');
+        if (bonusesEarned > 0) {
+          bonusEarnedEl.html(`🎁 Вы получили <strong>${bonusesEarned}</strong> бонусов!`);
+        } else {
+          bonusEarnedEl.html(`🎁 Игра за бонусы завершена! Бонусы: <strong>${bonusesEarned}</strong>`);
+        }
+      } else if (bonusesEarned > 0) {
         bonusEarnedEl.removeClass('hide');
         bonusEarnedEl.html(`🎁 Вы получили <strong>${bonusesEarned}</strong> бонусов!`);
       } else {
