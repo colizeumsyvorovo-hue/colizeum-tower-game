@@ -1740,21 +1740,45 @@
       // Для игры за бонусы записываем попытку сразу при старте
       if (gameType === 'bonus' && authToken) {
         try {
+          console.log('Starting bonus game, calling /api/game/bonus/start');
           const response = await fetch(`${API_BASE}/api/game/bonus/start`, {
             method: 'POST',
             headers: {
-              'Authorization': `Bearer ${authToken}`
+              'Authorization': `Bearer ${authToken}`,
+              'Content-Type': 'application/json'
             }
           });
 
+          console.log('Bonus game start response status:', response.status);
+
           if (!response.ok) {
-            const error = await response.json();
-            alert(error.error || 'Не удалось начать игру за бонусы');
+            let errorMessage = 'Не удалось начать игру за бонусы';
+            try {
+              const error = await response.json();
+              console.error('Bonus game start error:', error);
+              errorMessage = error.error || error.details || errorMessage;
+              
+              // Если игра недоступна, показываем более понятное сообщение
+              if (response.status === 403 && error.nextAvailable) {
+                const nextAvailable = new Date(error.nextAvailable);
+                const now = new Date();
+                const hours = Math.floor((nextAvailable - now) / (1000 * 60 * 60));
+                const minutes = Math.floor(((nextAvailable - now) % (1000 * 60 * 60)) / (1000 * 60));
+                errorMessage = `Игра за бонусы будет доступна через ${hours}ч ${minutes}м`;
+              }
+            } catch (parseErr) {
+              console.error('Error parsing error response:', parseErr);
+              errorMessage = `Ошибка сервера (${response.status}). Попробуйте позже.`;
+            }
+            alert(errorMessage);
             return;
           }
+          
+          const result = await response.json();
+          console.log('Bonus game started successfully:', result);
         } catch (err) {
           console.error('Start bonus game error:', err);
-          alert('Ошибка при начале игры за бонусы');
+          alert('Ошибка подключения к серверу. Проверьте интернет и попробуйте снова.');
           return;
         }
       }

@@ -2,11 +2,11 @@ const express = require('express');
 const cors = require('cors');
 const path = require('path');
 const config = require('./config');
-const { 
-  getOrCreateUser, 
-  saveGame, 
-  updateUserStats, 
-  canPlayBonusGame, 
+const {
+  getOrCreateUser,
+  saveGame,
+  updateUserStats,
+  canPlayBonusGame,
   recordBonusAttempt,
   getUserStats,
   getLeaderboard,
@@ -55,7 +55,7 @@ app.post('/api/auth/telegram', async (req, res) => {
     try {
       const urlParams = new URLSearchParams(initData);
       const userStr = urlParams.get('user');
-      
+
       if (userStr) {
         telegramUser = JSON.parse(userStr);
       } else {
@@ -97,7 +97,7 @@ app.post('/api/auth/telegram', async (req, res) => {
     const user = await getOrCreateUser(telegramUser);
     const token = generateToken(user);
 
-    res.json({ 
+    res.json({
       token,
       user: {
         id: user.id,
@@ -154,22 +154,64 @@ app.get('/api/game/bonus/check', authMiddleware, async (req, res) => {
 // API: Начать игру за бонусы (записывает попытку сразу при старте)
 app.post('/api/game/bonus/start', authMiddleware, async (req, res) => {
   try {
-    const { getOrCreateUser } = require('./database');
-    // Создаем пользователя, если его еще нет (для новых пользователей)
-    const user = await getOrCreateUser(req.user);
-    const bonusInfo = await canPlayBonusGame(user.id);
+    console.log('[/api/game/bonus/start] Request received from user:', req.user.telegramId);
+    
+    const { getUserByTelegramId, getOrCreateUser } = require('./database');
+    
+    // Получаем пользователя из базы данных
+    let user = await getUserByTelegramId(req.user.telegramId);
+    
+    // Если пользователя нет, создаем его с данными из токена
+    if (!user) {
+      console.log('[/api/game/bonus/start] User not found, creating new user');
+      try {
+        // Создаем пользователя с данными из токена
+        const telegramUserData = {
+          id: req.user.telegramId,
+          username: req.user.username || null,
+          first_name: req.user.firstName || 'User',
+          last_name: null
+        };
+        user = await getOrCreateUser(telegramUserData);
+        console.log('[/api/game/bonus/start] User created:', user.id);
+      } catch (userErr) {
+        console.error('[/api/game/bonus/start] Error creating user:', userErr);
+        return res.status(500).json({ error: 'Failed to create user', details: userErr.message });
+      }
+    } else {
+      console.log('[/api/game/bonus/start] User found:', user.id);
+    }
+    
+    // Проверяем доступность игры за бонусы
+    let bonusInfo;
+    try {
+      bonusInfo = await canPlayBonusGame(user.id);
+      console.log('[/api/game/bonus/start] Bonus game availability:', bonusInfo);
+    } catch (bonusErr) {
+      console.error('[/api/game/bonus/start] Error checking bonus availability:', bonusErr);
+      return res.status(500).json({ error: 'Failed to check bonus game availability', details: bonusErr.message });
+    }
     
     if (!bonusInfo.canPlay) {
+      console.log('[/api/game/bonus/start] Bonus game not available, nextAvailable:', bonusInfo.nextAvailable);
       return res.status(403).json({ error: 'Bonus game not available yet', nextAvailable: bonusInfo.nextAvailable });
     }
     
     // Записываем попытку сразу при старте игры
-    await recordBonusAttempt(user.id);
+    try {
+      await recordBonusAttempt(user.id);
+      console.log('[/api/game/bonus/start] Bonus attempt recorded for user:', user.id);
+    } catch (recordErr) {
+      console.error('[/api/game/bonus/start] Error recording bonus attempt:', recordErr);
+      return res.status(500).json({ error: 'Failed to record bonus attempt', details: recordErr.message });
+    }
     
+    console.log('[/api/game/bonus/start] Bonus game started successfully for user:', user.id);
     res.json({ success: true, message: 'Bonus game started' });
   } catch (err) {
-    console.error('Start bonus game error:', err);
-    res.status(500).json({ error: 'Failed to start bonus game' });
+    console.error('[/api/game/bonus/start] Unexpected error:', err);
+    console.error('[/api/game/bonus/start] Error stack:', err.stack);
+    res.status(500).json({ error: 'Failed to start bonus game', details: err.message });
   }
 });
 
@@ -192,7 +234,7 @@ app.post('/api/game/save', authMiddleware, async (req, res) => {
 
     // Начисление бонусов
     let bonusesEarned = 0;
-    
+
     if (gameType === 'bonus') {
       // Проверка для игры за бонусы (но попытка уже записана при старте)
       const bonusInfo = await canPlayBonusGame(user.id);
@@ -200,10 +242,10 @@ app.post('/api/game/save', authMiddleware, async (req, res) => {
 
       // В игре за бонусы: 1 бонус за обычный блок, 2 за perfect
       const calculatedBonuses = (normalCount * 1) + (perfectCount * 2);
-      
+
       // Проверяем лимит накопления для игры за бонусы (максимум 500)
       const newTotalBonuses = currentTotalBonuses + calculatedBonuses;
-      
+
       if (newTotalBonuses > maxBonuses) {
         // Начисляем только до лимита (если уже достигли лимита, начисляем 0)
         bonusesEarned = Math.max(0, maxBonuses - currentTotalBonuses);
@@ -214,10 +256,10 @@ app.post('/api/game/save', authMiddleware, async (req, res) => {
     } else if (gameType === 'normal') {
       // В обычной игре: 1 бонус за обычный блок, 2 за perfect
       const calculatedBonuses = (normalCount * 1) + (perfectCount * 2);
-      
+
       // Проверяем лимит накопления (максимум 500)
       const newTotalBonuses = currentTotalBonuses + calculatedBonuses;
-      
+
       if (newTotalBonuses > maxBonuses) {
         // Начисляем только до лимита
         bonusesEarned = Math.max(0, maxBonuses - currentTotalBonuses);
@@ -245,11 +287,11 @@ app.post('/api/game/save', authMiddleware, async (req, res) => {
     const statsBefore = await getUserStats(user.id);
     const bonusesBefore = statsBefore.total_bonuses || 0;
     console.log(`📊 Статистика ДО обновления:`, statsBefore);
-    
+
     // Обновляем статистику пользователя (total_games, total_bonuses, best_score)
     const updatedStats = await updateUserStats(user.id, score, bonusesEarned);
     console.log(`📊 Статистика ПОСЛЕ обновления:`, updatedStats);
-    
+
     // Получаем финальную статистику для проверки
     const statsAfter = await getUserStats(user.id);
     const bonusesAfter = statsAfter.total_bonuses || 0;
@@ -260,7 +302,7 @@ app.post('/api/game/save', authMiddleware, async (req, res) => {
       expectedBonuses: bonusesBefore + bonusesEarned,
       matches: bonusesAfter === bonusesBefore + bonusesEarned
     });
-    
+
     // Отправляем уведомления
     try {
       const bot = require('./telegram');
@@ -271,7 +313,7 @@ app.post('/api/game/save', authMiddleware, async (req, res) => {
           const progressBar = Math.floor((bonusesAfter / 500) * 10);
           const progressBarFill = '🟩'.repeat(progressBar);
           const progressBarEmpty = '⬜'.repeat(10 - progressBar);
-          
+
           // Всегда отправляем уведомление после игры за бонусы (даже если 0 бонусов)
           await bot.telegram.sendMessage(
             user.telegram_id,
@@ -332,8 +374,8 @@ app.post('/api/game/save', authMiddleware, async (req, res) => {
 
     // Возвращаем обновленную статистику в ответе
     const finalStats = await getUserStats(user.id);
-    
-    res.json({ 
+
+    res.json({
       success: true,
       bonusesEarned,
       message: bonusesEarned > 0 ? `Вы получили ${bonusesEarned} бонусов!` : null,
@@ -344,7 +386,7 @@ app.post('/api/game/save', authMiddleware, async (req, res) => {
         bonusGamesCount: finalStats.bonus_games_count || 0
       }
     });
-    
+
     console.log(`✅ Сохранение игры завершено успешно для пользователя ${user.id}`);
   } catch (err) {
     console.error('Save game error:', err);
@@ -373,14 +415,14 @@ app.get('/api/leaderboard', authMiddleware, async (req, res) => {
   try {
     const limit = parseInt(req.query.limit) || 10;
     const leaderboard = await getLeaderboard(limit);
-    
+
     // Получаем позицию текущего пользователя
     const { getUserByTelegramId } = require('./database');
     const user = await getUserByTelegramId(req.user.telegramId);
     const userRank = await getUserRank(user.id);
 
-    res.json({ 
-      leaderboard, 
+    res.json({
+      leaderboard,
       userRank,
       userBestScore: user.best_score || 0
     });
@@ -408,24 +450,24 @@ app.get('/api/bonus/history', authMiddleware, async (req, res) => {
 app.post('/api/bonus/exchange', authMiddleware, async (req, res) => {
   try {
     const { bonusesAmount } = req.body;
-    
+
     if (!bonusesAmount || bonusesAmount <= 0) {
       return res.status(400).json({ error: 'Invalid bonuses amount' });
     }
-    
+
     const { getUserByTelegramId } = require('./database');
     const user = await getUserByTelegramId(req.user.telegramId);
     const userStats = await getUserStats(user.id);
-    
+
     const currentBonuses = userStats.total_bonuses || 0;
-    
+
     if (currentBonuses < bonusesAmount) {
       return res.status(400).json({ error: 'Недостаточно бонусов для обмена' });
     }
-    
+
     // Выполняем обмен
     const result = await exchangeBonuses(user.id, bonusesAmount);
-    
+
     res.json({
       success: true,
       message: `Для получения ${bonusesAmount} бонусов необходимо пополнить счет на ${result.requiredDeposit} рублей в клубе`,
@@ -443,20 +485,20 @@ app.post('/api/bonus/exchange', authMiddleware, async (req, res) => {
 app.listen(config.port, async () => {
   console.log(`🚀 Server running on port ${config.port}`);
   console.log(`🎮 Game available at ${config.frontendUrl}`);
-  
+
   // Настройка webhook для Telegram бота
   console.log('🔍 Checking bot configuration...');
   console.log(`  - Bot exists: ${!!bot}`);
   console.log(`  - Bot token exists: ${!!config.telegramBotToken}`);
   console.log(`  - Webhook URL: ${config.telegramWebhookUrl || 'NOT SET'}`);
-  
+
   if (bot && config.telegramBotToken && config.telegramWebhookUrl) {
     try {
       const webhookUrl = `${config.telegramWebhookUrl}/webhook`;
       console.log(`🔧 Setting webhook to: ${webhookUrl}`);
       const result = await bot.telegram.setWebhook(webhookUrl);
       console.log(`✅ Telegram bot webhook set successfully:`, result);
-      
+
       const webhookInfo = await bot.telegram.getWebhookInfo();
       console.log(`✅ Telegram bot webhook configured`);
       console.log(`🤖 Webhook URL: ${webhookInfo.url || webhookUrl}`);
@@ -467,7 +509,7 @@ app.listen(config.port, async () => {
         last_error_date: webhookInfo.last_error_date,
         last_error_message: webhookInfo.last_error_message
       });
-      
+
       if (webhookInfo.pending_update_count > 0) {
         console.log(`⚠️  Warning: ${webhookInfo.pending_update_count} pending updates in queue`);
       }
