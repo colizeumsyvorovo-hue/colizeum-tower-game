@@ -7,9 +7,32 @@ const config = require('./config');
 const dbDir = path.dirname(config.databasePath);
 if (!fs.existsSync(dbDir)) {
   fs.mkdirSync(dbDir, { recursive: true });
+  console.log(`📁 Создана директория для базы данных: ${dbDir}`);
 }
 
-const db = new sqlite3.Database(config.databasePath);
+// Используем абсолютный путь для базы данных
+const absoluteDbPath = path.isAbsolute(config.databasePath) 
+  ? config.databasePath 
+  : path.join(__dirname, '..', config.databasePath);
+
+console.log(`💾 Путь к базе данных: ${absoluteDbPath}`);
+
+const db = new sqlite3.Database(absoluteDbPath, (err) => {
+  if (err) {
+    console.error(`❌ Ошибка при открытии базы данных:`, err);
+  } else {
+    console.log(`✅ База данных успешно подключена: ${absoluteDbPath}`);
+    
+    // Проверяем, что база данных доступна для записи
+    db.run('PRAGMA journal_mode = WAL;', (err) => {
+      if (err) {
+        console.warn(`⚠️ Не удалось установить WAL режим:`, err);
+      } else {
+        console.log(`✅ Режим WAL включен для лучшей производительности`);
+      }
+    });
+  }
+});
 
 // Инициализация базы данных
 db.serialize(() => {
@@ -94,12 +117,44 @@ const getOrCreateUser = async (telegramUser) => {
 // Функции для работы с играми
 const saveGame = (userId, gameType, score, floors, bonusesEarned = 0) => {
   return new Promise((resolve, reject) => {
+    console.log(`💾 Сохранение игры в базу данных:`, {
+      userId,
+      gameType,
+      score,
+      floors,
+      bonusesEarned
+    });
+
     db.run(
       'INSERT INTO games (user_id, game_type, score, floors, bonuses_earned) VALUES (?, ?, ?, ?, ?)',
       [userId, gameType, score, floors, bonusesEarned],
       function (err) {
-        if (err) reject(err);
-        else resolve(this.lastID);
+        if (err) {
+          console.error(`❌ Ошибка при сохранении игры для пользователя ${userId}:`, err);
+          reject(err);
+          return;
+        }
+
+        const gameId = this.lastID;
+        console.log(`✅ Игра сохранена в базу данных с ID: ${gameId} для пользователя ${userId}`);
+
+        // Проверяем, что игра действительно сохранилась
+        db.get(
+          'SELECT * FROM games WHERE id = ?',
+          [gameId],
+          (err, row) => {
+            if (err) {
+              console.error(`❌ Ошибка при проверке сохраненной игры ${gameId}:`, err);
+              // Не отклоняем промис, так как игра уже сохранена
+            } else if (!row) {
+              console.error(`⚠️ Игра ${gameId} не найдена после сохранения!`);
+            } else {
+              console.log(`✅ Подтверждено: игра ${gameId} успешно сохранена в базу данных`);
+            }
+          }
+        );
+
+        resolve(gameId);
       }
     );
   });
@@ -107,12 +162,86 @@ const saveGame = (userId, gameType, score, floors, bonusesEarned = 0) => {
 
 const updateUserStats = (userId, score, bonusesEarned) => {
   return new Promise((resolve, reject) => {
-    db.run(
-      'UPDATE users SET total_games = total_games + 1, total_bonuses = total_bonuses + ?, best_score = MAX(best_score, ?) WHERE id = ?',
-      [bonusesEarned, score, userId],
-      (err) => {
-        if (err) reject(err);
-        else resolve();
+    // Сначала получаем текущие данные
+    db.get(
+      'SELECT total_bonuses, total_games, best_score FROM users WHERE id = ?',
+      [userId],
+      (err, currentRow) => {
+        if (err) {
+          console.error(`❌ Ошибка при получении текущей статистики для пользователя ${userId}:`, err);
+          reject(err);
+          return;
+        }
+
+        if (!currentRow) {
+          console.error(`❌ Пользователь ${userId} не найден в базе данных`);
+          reject(new Error(`User ${userId} not found`));
+          return;
+        }
+
+        const oldBonuses = currentRow.total_bonuses || 0;
+        const oldGames = currentRow.total_games || 0;
+        const oldBestScore = currentRow.best_score || 0;
+        const newBonuses = oldBonuses + bonusesEarned;
+        const newGames = oldGames + 1;
+        const newBestScore = Math.max(oldBestScore, score);
+
+        console.log(`📝 Обновление статистики для пользователя ${userId}:`, {
+          oldBonuses,
+          bonusesEarned,
+          newBonuses,
+          oldGames,
+          newGames,
+          oldBestScore,
+          score,
+          newBestScore
+        });
+
+        // Обновляем статистику пользователя
+        db.run(
+          'UPDATE users SET total_games = ?, total_bonuses = ?, best_score = ? WHERE id = ?',
+          [newGames, newBonuses, newBestScore, userId],
+          function (err) {
+            if (err) {
+              console.error(`❌ Ошибка при обновлении статистики для пользователя ${userId}:`, err);
+              reject(err);
+              return;
+            }
+
+            if (this.changes === 0) {
+              console.error(`⚠️ Не удалось обновить статистику - строк не изменено для пользователя ${userId}`);
+              reject(new Error(`No rows updated for user ${userId}`));
+              return;
+            }
+
+            // Получаем обновленные данные для подтверждения
+            db.get(
+              'SELECT total_bonuses, total_games, best_score FROM users WHERE id = ?',
+              [userId],
+              (err, updatedRow) => {
+                if (err) {
+                  console.error(`❌ Ошибка при проверке обновленной статистики для пользователя ${userId}:`, err);
+                  reject(err);
+                  return;
+                }
+
+                // Проверяем, что данные обновились правильно
+                if (updatedRow.total_bonuses !== newBonuses) {
+                  console.error(`⚠️ Несоответствие бонусов! Ожидалось: ${newBonuses}, получено: ${updatedRow.total_bonuses}`);
+                }
+                if (updatedRow.total_games !== newGames) {
+                  console.error(`⚠️ Несоответствие игр! Ожидалось: ${newGames}, получено: ${updatedRow.total_games}`);
+                }
+                if (updatedRow.best_score !== newBestScore) {
+                  console.error(`⚠️ Несоответствие лучшего счета! Ожидалось: ${newBestScore}, получено: ${updatedRow.best_score}`);
+                }
+
+                console.log(`✅ Статистика успешно обновлена для пользователя ${userId}:`, updatedRow);
+                resolve(updatedRow);
+              }
+            );
+          }
+        );
       }
     );
   });
@@ -219,11 +348,23 @@ const getUserStats = (userId) => {
       FROM users u
       LEFT JOIN games g ON u.id = g.user_id
       WHERE u.id = ?
-      GROUP BY u.id`,
+      GROUP BY u.id, u.total_bonuses, u.total_games, u.best_score`,
       [userId],
       (err, row) => {
-        if (err) reject(err);
-        else resolve(row);
+        if (err) {
+          console.error(`❌ Ошибка при получении статистики для пользователя ${userId}:`, err);
+          reject(err);
+          return;
+        }
+        
+        if (!row) {
+          console.warn(`⚠️ Пользователь ${userId} не найден при получении статистики`);
+          resolve(null);
+          return;
+        }
+        
+        console.log(`📊 Статистика пользователя ${userId}:`, row);
+        resolve(row);
       }
     );
   });

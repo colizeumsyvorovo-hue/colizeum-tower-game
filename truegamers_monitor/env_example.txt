@@ -1,0 +1,17 @@
+# Telegram Bot Token (получите у @BotFather)
+TELEGRAM_BOT_TOKEN=your_bot_token_here
+
+# ID чата для автоматической отправки посадки (например: -1001234567890)
+# Если не указано, будет использоваться чат, откуда был запущен мониторинг
+TARGET_CHAT_ID=
+
+# Путь к ADB (если не в PATH)
+ADB_PATH=adb
+
+# ID устройства (можно оставить пустым)
+DEVICE_ID=
+
+# Часовой пояс для планировщика (по умолчанию Asia/Yekaterinburg)
+LOCAL_TZ=Asia/Yekaterinburg
+
+

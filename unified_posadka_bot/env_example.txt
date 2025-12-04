@@ -1,0 +1,26 @@
+# Telegram Bot Token (получите у @BotFather)
+TELEGRAM_TOKEN=your_bot_token_here
+
+# ID чата для автоматической отправки посадки (например: -1001234567890)
+TARGET_CHAT_ID=
+
+# ========== COLIZEUM API ==========
+COLIZEUM_DOMAIN=234-1.cls.expert
+COLIZEUM_API_KEY=d9a77f5187d4e6e4260e06d6619d695b
+COLIZEUM_PROXY_URL=https://mapclub.langame.ru/proxy
+
+# ========== TRUEGAMERS ANDROID ==========
+ADB_PATH=adb
+DEVICE_ID=
+TRUEGAMERS_PACKAGE=com.truegamers.true_gamers
+TRUEGAMERS_ACTIVITY=
+PIN_CODE=1111
+
+# ========== НАСТРОЙКИ ==========
+STATS_FILE=stats.json
+MAX_DAYS=30
+LOCAL_TZ=Asia/Yekaterinburg
+MAX_RETRIES=3
+RETRY_DELAY=2
+SCHEMA_CACHE_TTL=3600
+

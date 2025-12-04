@@ -139,8 +139,9 @@ app.get('/api/user/me', authMiddleware, async (req, res) => {
 // API: Проверить доступность игры за бонусы
 app.get('/api/game/bonus/check', authMiddleware, async (req, res) => {
   try {
-    const { getUserByTelegramId } = require('./database');
-    const user = await getUserByTelegramId(req.user.telegramId);
+    const { getOrCreateUser } = require('./database');
+    // Создаем пользователя, если его еще нет (для новых пользователей)
+    const user = await getOrCreateUser(req.user);
     const bonusInfo = await canPlayBonusGame(user.id);
 
     res.json(bonusInfo);
@@ -153,8 +154,9 @@ app.get('/api/game/bonus/check', authMiddleware, async (req, res) => {
 // API: Начать игру за бонусы (записывает попытку сразу при старте)
 app.post('/api/game/bonus/start', authMiddleware, async (req, res) => {
   try {
-    const { getUserByTelegramId } = require('./database');
-    const user = await getUserByTelegramId(req.user.telegramId);
+    const { getOrCreateUser } = require('./database');
+    // Создаем пользователя, если его еще нет (для новых пользователей)
+    const user = await getOrCreateUser(req.user);
     const bonusInfo = await canPlayBonusGame(user.id);
     
     if (!bonusInfo.canPlay) {
@@ -183,6 +185,11 @@ app.post('/api/game/save', authMiddleware, async (req, res) => {
     const { getUserByTelegramId } = require('./database');
     const user = await getUserByTelegramId(req.user.telegramId);
 
+    // Получаем текущую статистику пользователя ДО начисления бонусов
+    const userStatsBefore = await getUserStats(user.id);
+    const currentTotalBonuses = userStatsBefore.total_bonuses || 0;
+    const maxBonuses = 500;
+
     // Начисление бонусов
     let bonusesEarned = 0;
     
@@ -192,35 +199,67 @@ app.post('/api/game/save', authMiddleware, async (req, res) => {
       // Если попытка уже записана при старте, это нормально, просто проверяем
 
       // В игре за бонусы: 1 бонус за обычный блок, 2 за perfect
-      bonusesEarned = (normalCount * 1) + (perfectCount * 2);
+      const calculatedBonuses = (normalCount * 1) + (perfectCount * 2);
+      
+      // Проверяем лимит накопления для игры за бонусы (максимум 500)
+      const newTotalBonuses = currentTotalBonuses + calculatedBonuses;
+      
+      if (newTotalBonuses > maxBonuses) {
+        // Начисляем только до лимита (если уже достигли лимита, начисляем 0)
+        bonusesEarned = Math.max(0, maxBonuses - currentTotalBonuses);
+        console.log(`⚠️ Лимит бонусов достигнут! Было: ${currentTotalBonuses}, пытались начислить: ${calculatedBonuses}, начислено: ${bonusesEarned}`);
+      } else {
+        bonusesEarned = calculatedBonuses;
+      }
     } else if (gameType === 'normal') {
       // В обычной игре: 1 бонус за обычный блок, 2 за perfect
-      bonusesEarned = (normalCount * 1) + (perfectCount * 2);
+      const calculatedBonuses = (normalCount * 1) + (perfectCount * 2);
       
       // Проверяем лимит накопления (максимум 500)
-      const userStats = await getUserStats(user.id);
-      const currentTotalBonuses = userStats.total_bonuses || 0;
-      const maxBonuses = 500;
-      const newTotalBonuses = currentTotalBonuses + bonusesEarned;
+      const newTotalBonuses = currentTotalBonuses + calculatedBonuses;
       
       if (newTotalBonuses > maxBonuses) {
         // Начисляем только до лимита
         bonusesEarned = Math.max(0, maxBonuses - currentTotalBonuses);
+        console.log(`⚠️ Лимит бонусов достигнут! Было: ${currentTotalBonuses}, пытались начислить: ${calculatedBonuses}, начислено: ${bonusesEarned}`);
+      } else {
+        bonusesEarned = calculatedBonuses;
       }
     }
 
-    // Сохранение игры
-    await saveGame(user.id, gameType, score, floors, bonusesEarned);
-    
+    console.log(`💾 Сохранение игры для пользователя ${user.id}:`, {
+      gameType,
+      score,
+      floors,
+      bonusesEarned,
+      perfectCount,
+      normalCount,
+      currentTotalBonuses
+    });
+
+    // Сохранение игры в таблицу games
+    const gameId = await saveGame(user.id, gameType, score, floors, bonusesEarned);
+    console.log(`✅ Игра сохранена с ID: ${gameId}`);
+
     // Получаем статистику до обновления для проверки уведомлений
     const statsBefore = await getUserStats(user.id);
     const bonusesBefore = statsBefore.total_bonuses || 0;
+    console.log(`📊 Статистика ДО обновления:`, statsBefore);
     
-    await updateUserStats(user.id, score, bonusesEarned);
+    // Обновляем статистику пользователя (total_games, total_bonuses, best_score)
+    const updatedStats = await updateUserStats(user.id, score, bonusesEarned);
+    console.log(`📊 Статистика ПОСЛЕ обновления:`, updatedStats);
     
-    // Получаем статистику после обновления
+    // Получаем финальную статистику для проверки
     const statsAfter = await getUserStats(user.id);
     const bonusesAfter = statsAfter.total_bonuses || 0;
+    console.log(`✅ Финальная статистика:`, {
+      bonusesBefore,
+      bonusesEarned,
+      bonusesAfter,
+      expectedBonuses: bonusesBefore + bonusesEarned,
+      matches: bonusesAfter === bonusesBefore + bonusesEarned
+    });
     
     // Отправляем уведомления
     try {
@@ -291,11 +330,22 @@ app.post('/api/game/save', authMiddleware, async (req, res) => {
       // Не прерываем сохранение игры из-за ошибки уведомления
     }
 
+    // Возвращаем обновленную статистику в ответе
+    const finalStats = await getUserStats(user.id);
+    
     res.json({ 
       success: true,
       bonusesEarned,
-      message: bonusesEarned > 0 ? `Вы получили ${bonusesEarned} бонусов!` : null
+      message: bonusesEarned > 0 ? `Вы получили ${bonusesEarned} бонусов!` : null,
+      stats: {
+        totalBonuses: finalStats.total_bonuses || 0,
+        totalGames: finalStats.total_games || 0,
+        bestScore: finalStats.best_score || 0,
+        bonusGamesCount: finalStats.bonus_games_count || 0
+      }
     });
+    
+    console.log(`✅ Сохранение игры завершено успешно для пользователя ${user.id}`);
   } catch (err) {
     console.error('Save game error:', err);
     res.status(500).json({ error: 'Failed to save game' });
