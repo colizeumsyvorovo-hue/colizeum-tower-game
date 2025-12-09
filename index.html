@@ -1564,13 +1564,17 @@
           if (bonusInfo && bonusInfo.canPlay) {
             bonusInfoEl.addClass('available');
             $('#bonusCountdown').text('✅ Доступно сейчас!');
+            bonusNextAvailableTime = null;
           } else if (bonusInfo) {
             bonusInfoEl.removeClass('available');
-            const nextAvailable = new Date(bonusInfo.nextAvailable);
-            const now = new Date();
-            const hours = Math.floor((nextAvailable - now) / (1000 * 60 * 60));
-            const minutes = Math.floor(((nextAvailable - now) % (1000 * 60 * 60)) / (1000 * 60));
-            $('#bonusCountdown').text(`⏰ Доступно через: ${hours}ч ${minutes}м`);
+            // Сохраняем время когда игра станет доступна для таймера
+            bonusNextAvailableTime = new Date(bonusInfo.nextAvailable);
+            // Обновляем таймер сразу
+            updateBonusCountdown();
+            // Убеждаемся, что таймер запущен
+            if (!bonusCountdownInterval) {
+              startBonusCountdown();
+            }
           } else {
             $('#bonusCountdown').text('Проверка...');
           }
