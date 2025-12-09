@@ -1098,6 +1098,8 @@
     let game = null;
     let gameStart = false;
     let bonusStatusUpdateInterval = null; // Интервал для обновления статуса игры за бонусы
+    let bonusCountdownInterval = null; // Интервал для обновления таймера обратного отсчета
+    let bonusNextAvailableTime = null; // Время когда игра станет доступна
     let score = 0;
     let successCount = 0;
     let perfectCount = 0;
@@ -1478,6 +1480,9 @@
         clearInterval(bonusStatusUpdateInterval);
         bonusStatusUpdateInterval = null;
       }
+      
+      // Останавливаем таймер обратного отсчета
+      stopBonusCountdown();
       $('#canvas-container').addClass('hide');
       $('#canvas').addClass('hide');
       $('#loading').addClass('hide');
@@ -1759,14 +1764,8 @@
         updateBonusGameStatus();
       }, 60 * 1000); // Каждую минуту
       
-      // Запускаем автоматическое обновление статуса каждую минуту
-      if (bonusStatusUpdateInterval) {
-        clearInterval(bonusStatusUpdateInterval);
-      }
-      bonusStatusUpdateInterval = setInterval(() => {
-        console.log('Auto-updating bonus game status...');
-        updateBonusGameStatus();
-      }, 60 * 1000); // Каждую минуту
+      // Запускаем таймер обратного отсчета (обновляется каждую секунду)
+      startBonusCountdown();
     }
 
     // Функция для обновления статуса игры за бонусы
@@ -1791,6 +1790,7 @@
             bonusBadge.text('✅ Доступно');
             bonusBadge.removeClass('badge-warning').addClass('badge-success');
             bonusModeInfo.text('');
+            bonusNextAvailableTime = null;
             console.log('Bonus game is available');
           } else {
             // Игра недоступна - блокируем кнопку
@@ -1798,12 +1798,13 @@
             modeBonus.css('pointer-events', 'none');
             bonusBadge.text('⏰ Недоступно');
             bonusBadge.removeClass('badge-success').addClass('badge-warning');
-            const nextAvailable = new Date(bonusInfo.nextAvailable);
-            const now = new Date();
-            const hours = Math.floor((nextAvailable - now) / (1000 * 60 * 60));
-            const minutes = Math.floor(((nextAvailable - now) % (1000 * 60 * 60)) / (1000 * 60));
-            bonusModeInfo.text(`Доступно через: ${hours}ч ${minutes}м`);
-            console.log(`Bonus game is not available, next available in ${hours}h ${minutes}m`);
+            
+            // Сохраняем время когда игра станет доступна для таймера
+            bonusNextAvailableTime = new Date(bonusInfo.nextAvailable);
+            
+            // Обновляем таймер сразу
+            updateBonusCountdown();
+            console.log(`Bonus game is not available, next available at ${bonusNextAvailableTime.toISOString()}`);
           }
         } else {
           // Если запрос не удался, блокируем кнопку на всякий случай
@@ -1818,6 +1819,70 @@
         const modeBonus = $('#modeBonus');
         modeBonus.addClass('disabled');
         modeBonus.css('pointer-events', 'none');
+      }
+    }
+
+    // Функция для обновления таймера обратного отсчета на кнопке
+    function updateBonusCountdown() {
+      if (!bonusNextAvailableTime) {
+        return;
+      }
+
+      const now = new Date();
+      const timeLeft = bonusNextAvailableTime - now;
+
+      if (timeLeft <= 0) {
+        // Время истекло - обновляем статус
+        bonusNextAvailableTime = null;
+        updateBonusGameStatus();
+        return;
+      }
+
+      // Вычисляем оставшееся время
+      const hours = Math.floor(timeLeft / (1000 * 60 * 60));
+      const minutes = Math.floor((timeLeft % (1000 * 60 * 60)) / (1000 * 60));
+      const seconds = Math.floor((timeLeft % (1000 * 60)) / 1000);
+
+      // Обновляем текст на кнопке
+      const bonusBadge = $('#bonusBadge');
+      const bonusModeInfo = $('#bonusModeInfo');
+      
+      // Форматируем время для отображения
+      let timeText = '';
+      if (hours > 0) {
+        timeText = `${hours}ч ${String(minutes).padStart(2, '0')}м`;
+        bonusModeInfo.text(`Доступно через: ${hours}ч ${minutes}м ${seconds}с`);
+      } else if (minutes > 0) {
+        timeText = `${minutes}м ${String(seconds).padStart(2, '0')}с`;
+        bonusModeInfo.text(`Доступно через: ${minutes}м ${seconds}с`);
+      } else {
+        timeText = `${seconds}с`;
+        bonusModeInfo.text(`Доступно через: ${seconds}с`);
+      }
+      
+      bonusBadge.text(`⏰ ${timeText}`);
+    }
+
+    // Запуск таймера обратного отсчета
+    function startBonusCountdown() {
+      // Останавливаем предыдущий таймер если есть
+      if (bonusCountdownInterval) {
+        clearInterval(bonusCountdownInterval);
+      }
+
+      // Обновляем таймер каждую секунду
+      bonusCountdownInterval = setInterval(() => {
+        if (bonusNextAvailableTime) {
+          updateBonusCountdown();
+        }
+      }, 1000); // Каждую секунду
+    }
+
+    // Остановка таймера обратного отсчета
+    function stopBonusCountdown() {
+      if (bonusCountdownInterval) {
+        clearInterval(bonusCountdownInterval);
+        bonusCountdownInterval = null;
       }
     }
 
