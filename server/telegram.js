@@ -8,13 +8,28 @@ let bot = null;
 if (config.telegramBotToken) {
   bot = new Telegraf(config.telegramBotToken);
 
+  // Логирование всех входящих обновлений для отладки
+  bot.use(async (ctx, next) => {
+    console.log('📨 Bot update received:', {
+      update_id: ctx.update?.update_id,
+      type: ctx.updateType,
+      message: ctx.message ? { text: ctx.message.text, command: ctx.message.entities?.[0]?.type } : null,
+      callback_query: ctx.callbackQuery ? { data: ctx.callbackQuery.data } : null
+    });
+    return next();
+  });
+
   // Команда /start
   bot.command('start', async (ctx) => {
     const chatId = ctx.chat.id;
     const user = ctx.from;
 
     try {
-      console.log('[/start] Command received from user:', user.id, user.first_name);
+      console.log('[/start] ========================================');
+      console.log('[/start] Command received from user:', user?.id, user?.first_name);
+      console.log('[/start] Chat ID:', chatId);
+      console.log('[/start] Update ID:', ctx.update?.update_id);
+      console.log('[/start] ========================================');
       
       // Проверяем наличие пользователя
       if (!user || !user.id) {

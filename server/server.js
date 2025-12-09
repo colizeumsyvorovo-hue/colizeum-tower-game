@@ -28,8 +28,31 @@ const bot = require('./telegram');
 
 // Webhook endpoint для Telegram бота
 if (bot) {
-  app.use(bot.webhookCallback('/webhook'));
-  console.log('✅ Webhook endpoint registered: /webhook');
+  // Используем стандартный метод Telegraf для обработки webhook
+  // webhookCallback возвращает middleware для Express
+  const webhookMiddleware = bot.webhookCallback('/webhook');
+  
+  // Добавляем логирование перед обработкой
+  app.post('/webhook', (req, res, next) => {
+    console.log('📥 Webhook update received:', {
+      update_id: req.body?.update_id,
+      message: req.body?.message ? 'message' : 'other',
+      callback_query: req.body?.callback_query ? 'callback_query' : 'none'
+    });
+    next();
+  }, webhookMiddleware);
+  
+  console.log('✅ Webhook endpoint registered: POST /webhook');
+  
+  // Добавляем обработчик для проверки webhook (GET запрос)
+  app.get('/webhook', (req, res) => {
+    res.status(200).json({ 
+      status: 'ok', 
+      message: 'Webhook endpoint is active',
+      bot_configured: !!bot,
+      timestamp: new Date().toISOString()
+    });
+  });
 } else {
   console.warn('⚠️  Bot not initialized - webhook endpoint not available');
 }
@@ -491,14 +514,14 @@ function startNotificationScheduler() {
   sendBonusGameAvailableNotifications().catch(err => {
     console.error('Error in initial notification check:', err);
   });
-  
+
   // Затем проверяем каждый час
   notificationInterval = setInterval(() => {
     sendBonusGameAvailableNotifications().catch(err => {
       console.error('Error in scheduled notification check:', err);
     });
   }, 60 * 60 * 1000); // Каждый час
-  
+
   console.log('🔔 Система уведомлений о доступности игры за бонусы запущена (проверка каждый час)');
 }
 
@@ -506,7 +529,7 @@ function startNotificationScheduler() {
 app.listen(config.port, async () => {
   console.log(`🚀 Server running on port ${config.port}`);
   console.log(`🎮 Game available at ${config.frontendUrl}`);
-  
+
   // Запускаем систему уведомлений
   startNotificationScheduler();
 
