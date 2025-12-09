@@ -1821,9 +1821,12 @@
             // Обновляем таймер сразу
             updateBonusCountdown();
             
-            // Убеждаемся, что таймер запущен
+            // Убеждаемся, что таймер запущен (если еще не запущен)
             if (!bonusCountdownInterval) {
               startBonusCountdown();
+            } else {
+              // Если таймер уже запущен, просто обновляем его сразу
+              updateBonusCountdown();
             }
             
             console.log(`Bonus game is not available, next available at ${bonusNextAvailableTime.toISOString()}`);
