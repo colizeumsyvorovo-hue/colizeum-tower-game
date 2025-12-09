@@ -1756,13 +1756,21 @@
 
       console.log('Game mode selection shown');
 
+      // Запускаем таймер сразу (не дожидаясь ответа от сервера)
+      // Если bonusNextAvailableTime уже установлен, таймер начнет работать сразу
+      startBonusCountdown();
+      
       // Check bonus game availability (асинхронно)
       updateBonusGameStatus().then(() => {
-        // После обновления статуса запускаем таймер
-        startBonusCountdown();
+        // После обновления статуса убеждаемся, что таймер запущен
+        if (!bonusCountdownInterval) {
+          startBonusCountdown();
+        }
       }).catch(() => {
-        // Даже при ошибке запускаем таймер
-        startBonusCountdown();
+        // Даже при ошибке убеждаемся, что таймер запущен
+        if (!bonusCountdownInterval) {
+          startBonusCountdown();
+        }
       });
       
       // Запускаем автоматическое обновление статуса каждую минуту
