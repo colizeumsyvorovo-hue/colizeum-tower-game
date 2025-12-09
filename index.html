@@ -537,9 +537,16 @@
       box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
     }
 
-    .mode-card:disabled {
+    .mode-card.disabled {
       opacity: 0.5;
       cursor: not-allowed;
+      pointer-events: none;
+      user-select: none;
+    }
+
+    .mode-card.disabled:hover {
+      transform: none;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
     }
 
     .mode-card h3 {
@@ -1090,6 +1097,7 @@
     let currentGameType = 'normal';
     let game = null;
     let gameStart = false;
+    let bonusStatusUpdateInterval = null; // Интервал для обновления статуса игры за бонусы
     let score = 0;
     let successCount = 0;
     let perfectCount = 0;
@@ -1361,11 +1369,22 @@
           return false;
         }
 
-        if (!$(this).hasClass('disabled')) {
-          startGame('bonus');
-        } else {
-          alert('Игра за бонусы пока недоступна. Попробуйте позже!');
+        // ПРОВЕРКА: Если кнопка заблокирована, не запускаем игру
+        const modeBonus = $('#modeBonus');
+        if (modeBonus.hasClass('disabled')) {
+          console.log('Bonus game is disabled, cannot start');
+          // Получаем информацию о времени доступа
+          const bonusModeInfo = $('#bonusModeInfo').text();
+          if (bonusModeInfo) {
+            alert(`Игра за бонусы пока недоступна.\n${bonusModeInfo}\n\nПопробуйте позже!`);
+          } else {
+            alert('Игра за бонусы пока недоступна. Попробуйте позже!');
+          }
+          return false;
         }
+
+        // Дополнительная проверка перед запуском
+        startGame('bonus');
         return false;
       });
       // Обработчики кнопок Game Over модального окна (с поддержкой touch для мобильных)
@@ -1374,12 +1393,12 @@
         e.stopPropagation();
         console.log('btnPlayAgain clicked');
         $('#gameOverModal').addClass('hide').css('display', 'none');
-        
+
         // Обновляем статус игры за бонусы перед показом меню (если была игра за бонусы)
         if (currentGameType === 'bonus') {
           updateBonusGameStatus();
         }
-        
+
         showGameModeSelection();
       });
 
@@ -1388,12 +1407,12 @@
         e.stopPropagation();
         console.log('btnBackToMenu clicked');
         $('#gameOverModal').addClass('hide').css('display', 'none');
-        
+
         // Обновляем статус игры за бонусы перед показом меню
         if (currentGameType === 'bonus') {
           updateBonusGameStatus();
         }
-        
+
         showGameModeSelection();
       });
 
@@ -1453,6 +1472,12 @@
       $('#mainMenu').addClass('hide').css('display', 'none');
       $('#gameModeSelection').addClass('hide').css('display', 'none');
       $('.game-mode-selection').addClass('hide').css('display', 'none');
+      
+      // Останавливаем автоматическое обновление статуса игры за бонусы
+      if (bonusStatusUpdateInterval) {
+        clearInterval(bonusStatusUpdateInterval);
+        bonusStatusUpdateInterval = null;
+      }
       $('#canvas-container').addClass('hide');
       $('#canvas').addClass('hide');
       $('#loading').addClass('hide');
@@ -1724,6 +1749,24 @@
 
       // Check bonus game availability
       updateBonusGameStatus();
+      
+      // Запускаем автоматическое обновление статуса каждую минуту
+      if (bonusStatusUpdateInterval) {
+        clearInterval(bonusStatusUpdateInterval);
+      }
+      bonusStatusUpdateInterval = setInterval(() => {
+        console.log('Auto-updating bonus game status...');
+        updateBonusGameStatus();
+      }, 60 * 1000); // Каждую минуту
+      
+      // Запускаем автоматическое обновление статуса каждую минуту
+      if (bonusStatusUpdateInterval) {
+        clearInterval(bonusStatusUpdateInterval);
+      }
+      bonusStatusUpdateInterval = setInterval(() => {
+        console.log('Auto-updating bonus game status...');
+        updateBonusGameStatus();
+      }, 60 * 1000); // Каждую минуту
     }
 
     // Функция для обновления статуса игры за бонусы
@@ -1742,21 +1785,39 @@
           const bonusModeInfo = $('#bonusModeInfo');
 
           if (bonusInfo.canPlay) {
+            // Игра доступна - убираем блокировку
             modeBonus.removeClass('disabled');
+            modeBonus.css('pointer-events', 'auto');
             bonusBadge.text('✅ Доступно');
+            bonusBadge.removeClass('badge-warning').addClass('badge-success');
             bonusModeInfo.text('');
+            console.log('Bonus game is available');
           } else {
+            // Игра недоступна - блокируем кнопку
             modeBonus.addClass('disabled');
+            modeBonus.css('pointer-events', 'none');
             bonusBadge.text('⏰ Недоступно');
+            bonusBadge.removeClass('badge-success').addClass('badge-warning');
             const nextAvailable = new Date(bonusInfo.nextAvailable);
             const now = new Date();
             const hours = Math.floor((nextAvailable - now) / (1000 * 60 * 60));
             const minutes = Math.floor(((nextAvailable - now) % (1000 * 60 * 60)) / (1000 * 60));
             bonusModeInfo.text(`Доступно через: ${hours}ч ${minutes}м`);
+            console.log(`Bonus game is not available, next available in ${hours}h ${minutes}m`);
           }
+        } else {
+          // Если запрос не удался, блокируем кнопку на всякий случай
+          const modeBonus = $('#modeBonus');
+          modeBonus.addClass('disabled');
+          modeBonus.css('pointer-events', 'none');
+          console.error('Failed to check bonus game status:', response.status);
         }
       } catch (err) {
         console.error('Check bonus game error:', err);
+        // При ошибке блокируем кнопку
+        const modeBonus = $('#modeBonus');
+        modeBonus.addClass('disabled');
+        modeBonus.css('pointer-events', 'none');
       }
     }
 
@@ -2226,9 +2287,9 @@
           if (response.ok) {
             const data = await response.json();
             console.log('Game saved successfully, bonusesEarned:', data.bonusesEarned);
-            
+
             showGameOverModal(data.bonusesEarned, currentGameType);
-            
+
             // Если это игра за бонусы, обновляем статус доступности ПОСЛЕ показа модального окна
             if (currentGameType === 'bonus') {
               // Небольшая задержка, чтобы модальное окно успело показаться
@@ -2239,7 +2300,7 @@
           } else {
             console.log('Game save failed, status:', response.status);
             showGameOverModal(0, currentGameType);
-            
+
             // Обновляем статус даже при ошибке сохранения
             if (currentGameType === 'bonus') {
               setTimeout(() => {
@@ -2340,7 +2401,7 @@
       modalEl.css('z-index', '10000');
       modalEl.css('pointer-events', 'auto');
       console.log('Game over modal shown, display:', modalEl.css('display'), 'z-index:', modalEl.css('z-index'), 'gameType:', currentGameType);
-      
+
       // Для игры за бонусы сразу обновляем статус, чтобы таймер отображался правильно при возврате в меню
       if (gameType === 'bonus') {
         // Небольшая задержка, чтобы модальное окно успело показаться
