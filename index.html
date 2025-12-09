@@ -1752,8 +1752,14 @@
 
       console.log('Game mode selection shown');
 
-      // Check bonus game availability
-      updateBonusGameStatus();
+      // Check bonus game availability (асинхронно)
+      updateBonusGameStatus().then(() => {
+        // После обновления статуса запускаем таймер
+        startBonusCountdown();
+      }).catch(() => {
+        // Даже при ошибке запускаем таймер
+        startBonusCountdown();
+      });
       
       // Запускаем автоматическое обновление статуса каждую минуту
       if (bonusStatusUpdateInterval) {
@@ -1763,14 +1769,13 @@
         console.log('Auto-updating bonus game status...');
         updateBonusGameStatus();
       }, 60 * 1000); // Каждую минуту
-      
-      // Запускаем таймер обратного отсчета (обновляется каждую секунду)
-      startBonusCountdown();
     }
 
     // Функция для обновления статуса игры за бонусы
     async function updateBonusGameStatus() {
-      if (!authToken) return;
+      if (!authToken) {
+        return Promise.resolve();
+      }
 
       try {
         const response = await fetch(`${API_BASE}/api/game/bonus/check`, {
@@ -1796,7 +1801,6 @@
             // Игра недоступна - блокируем кнопку
             modeBonus.addClass('disabled');
             modeBonus.css('pointer-events', 'none');
-            bonusBadge.text('⏰ Недоступно');
             bonusBadge.removeClass('badge-success').addClass('badge-warning');
             
             // Сохраняем время когда игра станет доступна для таймера
@@ -1804,6 +1808,12 @@
             
             // Обновляем таймер сразу
             updateBonusCountdown();
+            
+            // Убеждаемся, что таймер запущен
+            if (!bonusCountdownInterval) {
+              startBonusCountdown();
+            }
+            
             console.log(`Bonus game is not available, next available at ${bonusNextAvailableTime.toISOString()}`);
           }
         } else {
@@ -1874,8 +1884,20 @@
       bonusCountdownInterval = setInterval(() => {
         if (bonusNextAvailableTime) {
           updateBonusCountdown();
+        } else {
+          // Если время не установлено, но кнопка заблокирована, обновляем статус
+          const modeBonus = $('#modeBonus');
+          if (modeBonus.hasClass('disabled')) {
+            // Пытаемся обновить статус, чтобы получить время
+            updateBonusGameStatus();
+          }
         }
       }, 1000); // Каждую секунду
+      
+      // Обновляем таймер сразу при запуске
+      if (bonusNextAvailableTime) {
+        updateBonusCountdown();
+      }
     }
 
     // Остановка таймера обратного отсчета
