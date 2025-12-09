@@ -1853,24 +1853,39 @@
       const minutes = Math.floor((timeLeft % (1000 * 60 * 60)) / (1000 * 60));
       const seconds = Math.floor((timeLeft % (1000 * 60)) / 1000);
 
-      // Обновляем текст на кнопке
+      // Обновляем текст на кнопке в меню выбора режима игры
       const bonusBadge = $('#bonusBadge');
       const bonusModeInfo = $('#bonusModeInfo');
       
       // Форматируем время для отображения
       let timeText = '';
+      let fullTimeText = '';
       if (hours > 0) {
         timeText = `${hours}ч ${String(minutes).padStart(2, '0')}м`;
-        bonusModeInfo.text(`Доступно через: ${hours}ч ${minutes}м ${seconds}с`);
+        fullTimeText = `Доступно через: ${hours}ч ${minutes}м ${seconds}с`;
       } else if (minutes > 0) {
         timeText = `${minutes}м ${String(seconds).padStart(2, '0')}с`;
-        bonusModeInfo.text(`Доступно через: ${minutes}м ${seconds}с`);
+        fullTimeText = `Доступно через: ${minutes}м ${seconds}с`;
       } else {
         timeText = `${seconds}с`;
-        bonusModeInfo.text(`Доступно через: ${seconds}с`);
+        fullTimeText = `Доступно через: ${seconds}с`;
       }
       
+      // Обновляем в меню выбора режима игры
       bonusBadge.text(`⏰ ${timeText}`);
+      bonusModeInfo.text(fullTimeText);
+      
+      // Обновляем также в личном кабинете
+      const bonusCountdown = $('#bonusCountdown');
+      if (bonusCountdown.length > 0) {
+        if (hours > 0) {
+          bonusCountdown.text(`⏰ Доступно через: ${hours}ч ${minutes}м ${seconds}с`);
+        } else if (minutes > 0) {
+          bonusCountdown.text(`⏰ Доступно через: ${minutes}м ${seconds}с`);
+        } else {
+          bonusCountdown.text(`⏰ Доступно через: ${seconds}с`);
+        }
+      }
     }
 
     // Запуск таймера обратного отсчета
