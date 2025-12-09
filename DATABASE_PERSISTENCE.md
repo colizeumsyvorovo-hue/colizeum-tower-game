@@ -59,3 +59,4 @@ find $BACKUP_DIR -name "game_*.db" -mtime +7 -delete
 0 3 * * * /var/www/colizeum-game/backup-db.sh
 ```
 
+

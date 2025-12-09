@@ -211,7 +211,7 @@ const drawSwingBlock = (instance, engine) => {
   if (!cachedBlockRopeImage) {
     cachedBlockRopeImage = engine.getImg('blockRope')
   }
-  
+
   if (cachedBlockRopeImage) {
     engine.ctx.drawImage(
       cachedBlockRopeImage,
@@ -221,7 +221,7 @@ const drawSwingBlock = (instance, engine) => {
       instance.height * 1.3
     )
   }
-  
+
   // Отладочная линия только в режиме отладки
   if (engine.debug) {
     const leftX = instance.weightX - instance.calWidth
@@ -235,7 +235,7 @@ let cachedPerfectBlockImage = null
 
 const drawBlock = (instance, engine) => {
   const { perfect } = instance
-  
+
   // Кешируем изображения при первом использовании
   if (!cachedBlockImage) {
     cachedBlockImage = engine.getImg('block')
@@ -243,7 +243,7 @@ const drawBlock = (instance, engine) => {
   if (!cachedPerfectBlockImage) {
     cachedPerfectBlockImage = engine.getImg('block-perfect')
   }
-  
+
   const bl = perfect ? cachedPerfectBlockImage : cachedBlockImage
   if (bl) {
     engine.ctx.drawImage(bl, instance.x, instance.y, instance.width, instance.height)

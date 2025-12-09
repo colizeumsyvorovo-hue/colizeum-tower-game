@@ -46,14 +46,14 @@ export const hookPainter = (instance, engine) => {
   const { ctx } = engine
   const ropeHeight = engine.getVariable(constant.ropeHeight)
   const ropeWidth = ropeHeight * 0.1
-  
+
   // Кешируем изображение крюка
   if (!cachedHookImage) {
     cachedHookImage = engine.getImg('hook')
   }
-  
+
   if (!cachedHookImage) return
-  
+
   ctx.save()
   ctx.translate(instance.x, instance.y)
   ctx.rotate((Math.PI * 2) - instance.angle)

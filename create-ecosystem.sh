@@ -36,3 +36,4 @@ EOF
 
 echo "✅ Файл ecosystem.config.js создан в ${CURRENT_DIR}"
 
+

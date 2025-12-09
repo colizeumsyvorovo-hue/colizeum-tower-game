@@ -18,7 +18,7 @@ let cachedHeartDimensions = null
 export const endAnimate = (engine) => {
   const gameStartNow = engine.getVariable(constant.gameStartNow)
   if (!gameStartNow) return
-  
+
   // Кешируем переменные для избежания повторных вызовов
   const successCount = engine.getVariable(constant.successCount, 0)
   const failedCount = engine.getVariable(constant.failedCount)
@@ -35,7 +35,7 @@ export const endAnimate = (engine) => {
       cachedScoreDimensions = { width: zoomedWidth, height: zoomedHeight }
     }
   }
-  
+
   if (!cachedHeartImage) {
     cachedHeartImage = engine.getImg('heart')
     if (cachedHeartImage) {
@@ -62,7 +62,7 @@ export const endAnimate = (engine) => {
     y: engine.width * 0.2,
     textAlign: 'right'
   })
-  
+
   // Рисуем изображение score (кешированное)
   if (cachedScoreImage && cachedScoreDimensions) {
     engine.ctx.drawImage(
@@ -73,7 +73,7 @@ export const endAnimate = (engine) => {
       cachedScoreDimensions.height
     )
   }
-  
+
   // Всегда показываем бонусы вместо очков в обоих режимах
   const gameBonuses = engine.getVariable('GAME_BONUSES')
   const bonusesToShow = (gameBonuses !== undefined && gameBonuses !== null) ? gameBonuses : 0
@@ -84,12 +84,12 @@ export const endAnimate = (engine) => {
     y: engine.width * 0.11,
     textAlign: 'right'
   })
-  
+
   // Рисуем сердца (оптимизировано)
   if (cachedHeartImage && cachedHeartDimensions) {
     const { width: heartWidth, height: heartHeight } = cachedHeartDimensions
     const heartX = engine.width * 0.66
-    
+
     // Группируем операции рисования для оптимизации
     for (let i = 1; i <= 3; i += 1) {
       ctx.save()

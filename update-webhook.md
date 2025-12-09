@@ -66,3 +66,4 @@ bot.telegram.deleteWebhook().then(console.log);
 
 Но это не обязательно - при установке нового webhook старый автоматически удаляется.
 
+

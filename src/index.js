@@ -5,7 +5,6 @@ import { lineAction, linePainter } from './line'
 import { cloudAction, cloudPainter } from './cloud'
 import { hookAction, hookPainter } from './hook'
 import { tutorialAction, tutorialPainter } from './tutorial'
-import { snowAction, snowPainter, initSnow } from './snow'
 import * as constant from './constant'
 import { startAnimate, endAnimate } from './animateFuncs'
 
@@ -84,15 +83,7 @@ window.TowerGame = (option = {}) => {
   game.startAnimate = startAnimate
   game.endAnimate = endAnimate
   game.paintUnderInstance = background
-  
-  // Снег отключен
-  // const snow = new Instance({
-  //   name: 'snow',
-  //   action: snowAction,
-  //   painter: snowPainter
-  // })
-  // game.addInstance(snow)
-  // initSnow(game) // Автоматически определит оптимальное количество для устройства
+
   game.addKeyDownListener('enter', () => {
     if (game.debug) game.togglePaused()
   })

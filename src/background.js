@@ -16,16 +16,16 @@ export const backgroundImg = (engine) => {
       cachedBackgroundDimensions = { zoomedHeight }
     }
   }
-  
+
   if (!cachedBackgroundImage || !cachedBackgroundDimensions) return
-  
+
   const { zoomedHeight } = cachedBackgroundDimensions
   let offsetHeight = engine.getVariable(constant.bgImgOffset, engine.height - zoomedHeight)
-  
+
   if (offsetHeight > engine.height) {
     return
   }
-  
+
   engine.getTimeMovement(
     constant.moveDownMovement,
     [[offsetHeight, offsetHeight + (getMoveDownValue(engine, { pixelsPerFrame: s => s / 2 }))]],
@@ -101,7 +101,7 @@ export const backgroundLinearGradient = (engine) => {
     engine.ctx.fillRect(0, 0, engine.width, engine.height)
   }
   engine.getTimeMovement(
-    constant.lightningMovement, [], () => {},
+    constant.lightningMovement, [], () => { },
     {
       before: lightning,
       after: lightning

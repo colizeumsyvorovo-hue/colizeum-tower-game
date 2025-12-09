@@ -62,3 +62,4 @@ pm2 logs colizeum-game --lines 10
 Должно быть:
 - `🎮 Game available at https://osiptzovs.fvds.ru` (без слэша в конце)
 
+

@@ -128,3 +128,4 @@ EOF
 echo "✅ Конфигурация создана для домена: ${DOMAIN}"
 echo "📝 Файл: /etc/nginx/sites-available/colizeum-game"
 
+
