@@ -2480,7 +2480,15 @@
               }, 500);
             }
           } else {
-            console.log('Game save failed, status:', response.status);
+            const errorData = await response.json().catch(() => ({}));
+            console.log('Game save failed, status:', response.status, errorData);
+            
+            // Проверяем ошибку подписки
+            if (response.status === 403 && errorData.error === 'Channel subscription required') {
+              showSubscriptionRequired(errorData.channel || '@colizeum_kamensk_uralskiy');
+              return;
+            }
+            
             showGameOverModal(0, currentGameType);
 
             // Обновляем статус даже при ошибке сохранения
