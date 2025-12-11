@@ -70,6 +70,44 @@ db.serialize(() => {
     UNIQUE(user_id)
   )`);
 
+  // Таблица ежедневной статистики пользователей
+  db.run(`CREATE TABLE IF NOT EXISTS daily_user_stats (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL,
+    date DATE NOT NULL,
+    first_seen_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    last_seen_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    games_played INTEGER DEFAULT 0,
+    FOREIGN KEY (user_id) REFERENCES users(id),
+    UNIQUE(user_id, date)
+  )`);
+
+  // Таблица рекламных сообщений
+  db.run(`CREATE TABLE IF NOT EXISTS advertisements (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    title TEXT NOT NULL,
+    message TEXT NOT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    sent_at DATETIME,
+    sent_count INTEGER DEFAULT 0,
+    target_all_users BOOLEAN DEFAULT 1,
+    min_games INTEGER DEFAULT 0,
+    min_bonuses INTEGER DEFAULT 0,
+    is_active BOOLEAN DEFAULT 1
+  )`);
+
+  // Таблица логов отправки рекламы
+  db.run(`CREATE TABLE IF NOT EXISTS advertisement_logs (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    advertisement_id INTEGER NOT NULL,
+    user_id INTEGER NOT NULL,
+    sent_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    status TEXT DEFAULT 'sent',
+    error_message TEXT,
+    FOREIGN KEY (advertisement_id) REFERENCES advertisements(id),
+    FOREIGN KEY (user_id) REFERENCES users(id)
+  )`);
+
   console.log('Database initialized');
 });
 
@@ -110,7 +148,40 @@ const getOrCreateUser = async (telegramUser) => {
         throw err;
       }
     }
+  } else {
+    // Обновляем username и first_name, если они изменились
+    if (telegramUser.username !== user.username || telegramUser.first_name !== user.first_name) {
+      db.run(
+        'UPDATE users SET username = ?, first_name = ? WHERE id = ?',
+        [telegramUser.username || null, telegramUser.first_name || null, user.id],
+        (err) => {
+          if (err) {
+            console.error('Error updating user info:', err);
+          } else {
+            user.username = telegramUser.username || user.username;
+            user.first_name = telegramUser.first_name || user.first_name;
+          }
+        }
+      );
+    }
   }
+  
+  // Записываем статистику активности (ежедневная статистика)
+  if (user) {
+    const today = new Date().toISOString().split('T')[0];
+    db.run(
+      `INSERT INTO daily_user_stats (user_id, date, first_seen_at, last_seen_at)
+       VALUES (?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+       ON CONFLICT(user_id, date) DO UPDATE SET last_seen_at = CURRENT_TIMESTAMP`,
+      [user.id, today],
+      (err) => {
+        if (err) {
+          console.error('Error recording daily user stats:', err);
+        }
+      }
+    );
+  }
+  
   return user;
 };
 
@@ -237,6 +308,12 @@ const updateUserStats = (userId, score, bonusesEarned) => {
                 }
 
                 console.log(`✅ Статистика успешно обновлена для пользователя ${userId}:`, updatedRow);
+                
+                // Обновляем ежедневную статистику игр
+                updateDailyGamesCount(userId).catch(err => {
+                  console.error('Error updating daily games count:', err);
+                });
+                
                 resolve(updatedRow);
               }
             );
@@ -453,6 +530,172 @@ function getBonusGameHistory(userId, limit = 10) {
   });
 }
 
+// Функции для работы со статистикой
+const getDailyStats = (date = null) => {
+  return new Promise((resolve, reject) => {
+    const targetDate = date || new Date().toISOString().split('T')[0];
+    db.all(
+      `SELECT 
+        dus.user_id,
+        u.telegram_id,
+        u.username,
+        u.first_name,
+        dus.first_seen_at,
+        dus.last_seen_at,
+        dus.games_played
+      FROM daily_user_stats dus
+      INNER JOIN users u ON dus.user_id = u.id
+      WHERE dus.date = ?
+      ORDER BY dus.first_seen_at ASC`,
+      [targetDate],
+      (err, rows) => {
+        if (err) reject(err);
+        else resolve(rows || []);
+      }
+    );
+  });
+};
+
+const getDailyStatsSummary = (date = null) => {
+  return new Promise((resolve, reject) => {
+    const targetDate = date || new Date().toISOString().split('T')[0];
+    db.get(
+      `SELECT 
+        COUNT(DISTINCT user_id) as total_users,
+        SUM(games_played) as total_games,
+        COUNT(DISTINCT CASE WHEN games_played > 0 THEN user_id END) as active_users
+      FROM daily_user_stats
+      WHERE date = ?`,
+      [targetDate],
+      (err, row) => {
+        if (err) reject(err);
+        else resolve(row || { total_users: 0, total_games: 0, active_users: 0 });
+      }
+    );
+  });
+};
+
+const updateDailyGamesCount = (userId, date = null) => {
+  return new Promise((resolve, reject) => {
+    const targetDate = date || new Date().toISOString().split('T')[0];
+    db.run(
+      `UPDATE daily_user_stats 
+       SET games_played = games_played + 1 
+       WHERE user_id = ? AND date = ?`,
+      [userId, targetDate],
+      function (err) {
+        if (err) reject(err);
+        else resolve(this.changes);
+      }
+    );
+  });
+};
+
+// Функции для работы с рекламой
+const createAdvertisement = (title, message, options = {}) => {
+  return new Promise((resolve, reject) => {
+    const {
+      targetAllUsers = true,
+      minGames = 0,
+      minBonuses = 0,
+      isActive = true
+    } = options;
+
+    db.run(
+      `INSERT INTO advertisements 
+       (title, message, target_all_users, min_games, min_bonuses, is_active)
+       VALUES (?, ?, ?, ?, ?, ?)`,
+      [title, message, targetAllUsers ? 1 : 0, minGames, minBonuses, isActive ? 1 : 0],
+      function (err) {
+        if (err) reject(err);
+        else resolve(this.lastID);
+      }
+    );
+  });
+};
+
+const getAdvertisements = (activeOnly = false) => {
+  return new Promise((resolve, reject) => {
+    let query = 'SELECT * FROM advertisements';
+    const params = [];
+    
+    if (activeOnly) {
+      query += ' WHERE is_active = 1';
+    }
+    
+    query += ' ORDER BY created_at DESC';
+    
+    db.all(query, params, (err, rows) => {
+      if (err) reject(err);
+      else resolve(rows || []);
+    });
+  });
+};
+
+const getAdvertisement = (adId) => {
+  return new Promise((resolve, reject) => {
+    db.get('SELECT * FROM advertisements WHERE id = ?', [adId], (err, row) => {
+      if (err) reject(err);
+      else resolve(row);
+    });
+  });
+};
+
+const updateAdvertisementStatus = (adId, sentCount, sentAt) => {
+  return new Promise((resolve, reject) => {
+    db.run(
+      'UPDATE advertisements SET sent_count = ?, sent_at = ? WHERE id = ?',
+      [sentCount, sentAt, adId],
+      function (err) {
+        if (err) reject(err);
+        else resolve(this.changes);
+      }
+    );
+  });
+};
+
+const logAdvertisementSend = (adId, userId, status = 'sent', errorMessage = null) => {
+  return new Promise((resolve, reject) => {
+    db.run(
+      'INSERT INTO advertisement_logs (advertisement_id, user_id, status, error_message) VALUES (?, ?, ?, ?)',
+      [adId, userId, status, errorMessage],
+      function (err) {
+        if (err) reject(err);
+        else resolve(this.lastID);
+      }
+    );
+  });
+};
+
+const getTargetUsersForAdvertisement = (ad) => {
+  return new Promise((resolve, reject) => {
+    let query = 'SELECT DISTINCT u.id, u.telegram_id, u.username, u.first_name FROM users u';
+    const params = [];
+    const conditions = [];
+
+    if (ad.target_all_users === 0 || !ad.target_all_users) {
+      // Фильтруем по критериям
+      if (ad.min_games > 0) {
+        conditions.push('u.total_games >= ?');
+        params.push(ad.min_games);
+      }
+      if (ad.min_bonuses > 0) {
+        conditions.push('u.total_bonuses >= ?');
+        params.push(ad.min_bonuses);
+      }
+    }
+
+    if (conditions.length > 0) {
+      query += ' WHERE ' + conditions.join(' AND ');
+    }
+
+    db.all(query, params, (err, rows) => {
+      if (err) reject(err);
+      else resolve(rows || []);
+    });
+  });
+};
+
 module.exports = {
   db,
   getUserByTelegramId,
@@ -465,6 +708,15 @@ module.exports = {
   getLeaderboard,
   getUserRank,
   getBonusGameHistory,
-  exchangeBonuses
+  exchangeBonuses,
+  getDailyStats,
+  getDailyStatsSummary,
+  updateDailyGamesCount,
+  createAdvertisement,
+  getAdvertisements,
+  getAdvertisement,
+  updateAdvertisementStatus,
+  logAdvertisementSend,
+  getTargetUsersForAdvertisement
 };
 

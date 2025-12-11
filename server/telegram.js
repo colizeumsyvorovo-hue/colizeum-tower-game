@@ -396,6 +396,210 @@ if (config.telegramBotToken) {
     }
   });
 
+  // Административные команды (только для администраторов)
+  const ADMIN_IDS = process.env.ADMIN_TELEGRAM_IDS ? process.env.ADMIN_TELEGRAM_IDS.split(',').map(id => parseInt(id.trim())) : [];
+  
+  const isAdmin = (userId) => {
+    return ADMIN_IDS.length === 0 || ADMIN_IDS.includes(userId);
+  };
+
+  // Команда /admin_stats - статистика за день
+  bot.command('admin_stats', async (ctx) => {
+    try {
+      if (!isAdmin(ctx.from.id)) {
+        await ctx.reply('❌ У вас нет прав для выполнения этой команды.');
+        return;
+      }
+
+      const { getDailyStats, getDailyStatsSummary } = require('./database');
+      const date = ctx.message.text.split(' ')[1] || null; // Опциональная дата в формате YYYY-MM-DD
+      
+      const summary = await getDailyStatsSummary(date);
+      const details = await getDailyStats(date);
+      
+      const dateStr = date || new Date().toISOString().split('T')[0];
+      
+      let message = `📊 <b>СТАТИСТИКА ЗА ${dateStr}</b>\n\n`;
+      message += `👥 <b>Всего пользователей:</b> ${summary.total_users}\n`;
+      message += `🎮 <b>Активных игроков:</b> ${summary.active_users}\n`;
+      message += `🎯 <b>Всего игр сыграно:</b> ${summary.total_games}\n\n`;
+      
+      if (details.length > 0) {
+        message += `<b>Список пользователей:</b>\n`;
+        details.slice(0, 20).forEach((user, index) => {
+          const username = user.username ? `@${user.username}` : user.first_name || 'Без имени';
+          message += `${index + 1}. ${username} (ID: ${user.telegram_id}) - ${user.games_played} игр\n`;
+        });
+        if (details.length > 20) {
+          message += `\n... и еще ${details.length - 20} пользователей`;
+        }
+      }
+      
+      await ctx.reply(message, { parse_mode: 'HTML' });
+    } catch (err) {
+      console.error('Error in /admin_stats command:', err);
+      await ctx.reply('❌ Ошибка при получении статистики.');
+    }
+  });
+
+  // Команда /admin_ad - создать рекламу
+  bot.command('admin_ad', async (ctx) => {
+    try {
+      if (!isAdmin(ctx.from.id)) {
+        await ctx.reply('❌ У вас нет прав для выполнения этой команды.');
+        return;
+      }
+
+      const args = ctx.message.text.split('\n').filter(line => line.trim());
+      if (args.length < 3) {
+        await ctx.reply(
+          '📝 <b>Создание рекламы</b>\n\n' +
+          'Использование:\n' +
+          '<code>/admin_ad\n' +
+          'Заголовок\n' +
+          'Текст сообщения\n' +
+          'all (или min_games:5 min_bonuses:10)</code>\n\n' +
+          'Пример:\n' +
+          '<code>/admin_ad\n' +
+          '🎉 Акция!\n' +
+          'Новая акция для всех игроков!\n' +
+          'all</code>',
+          { parse_mode: 'HTML' }
+        );
+        return;
+      }
+
+      const title = args[1];
+      const message = args[2];
+      const optionsStr = args[3] || 'all';
+      
+      let options = { targetAllUsers: true, minGames: 0, minBonuses: 0 };
+      
+      if (optionsStr !== 'all') {
+        options.targetAllUsers = false;
+        const minGamesMatch = optionsStr.match(/min_games:(\d+)/);
+        const minBonusesMatch = optionsStr.match(/min_bonuses:(\d+)/);
+        if (minGamesMatch) options.minGames = parseInt(minGamesMatch[1]);
+        if (minBonusesMatch) options.minBonuses = parseInt(minBonusesMatch[1]);
+      }
+
+      const { createAdvertisement } = require('./database');
+      const adId = await createAdvertisement(title, message, options);
+      
+      await ctx.reply(
+        `✅ Реклама создана!\n\n` +
+        `ID: ${adId}\n` +
+        `Заголовок: ${title}\n` +
+        `Целевая аудитория: ${options.targetAllUsers ? 'Все пользователи' : `Мин. игр: ${options.minGames}, Мин. бонусов: ${options.minBonuses}`}\n\n` +
+        `Отправьте /admin_send_ad ${adId} для отправки`,
+        { parse_mode: 'HTML' }
+      );
+    } catch (err) {
+      console.error('Error in /admin_ad command:', err);
+      await ctx.reply('❌ Ошибка при создании рекламы.');
+    }
+  });
+
+  // Команда /admin_ads - список рекламных сообщений
+  bot.command('admin_ads', async (ctx) => {
+    try {
+      if (!isAdmin(ctx.from.id)) {
+        await ctx.reply('❌ У вас нет прав для выполнения этой команды.');
+        return;
+      }
+
+      const { getAdvertisements } = require('./database');
+      const ads = await getAdvertisements(false);
+      
+      if (ads.length === 0) {
+        await ctx.reply('📢 Рекламных сообщений пока нет.');
+        return;
+      }
+
+      let message = `📢 <b>СПИСОК РЕКЛАМНЫХ СООБЩЕНИЙ</b>\n\n`;
+      ads.slice(0, 10).forEach(ad => {
+        message += `ID: ${ad.id}\n`;
+        message += `📌 ${ad.title}\n`;
+        message += `📊 Отправлено: ${ad.sent_count || 0}\n`;
+        message += `📅 Создано: ${new Date(ad.created_at).toLocaleDateString('ru-RU')}\n`;
+        message += `${ad.is_active ? '✅ Активно' : '❌ Неактивно'}\n\n`;
+      });
+      
+      await ctx.reply(message, { parse_mode: 'HTML' });
+    } catch (err) {
+      console.error('Error in /admin_ads command:', err);
+      await ctx.reply('❌ Ошибка при получении списка рекламы.');
+    }
+  });
+
+  // Команда /admin_send_ad - отправить рекламу
+  bot.command('admin_send_ad', async (ctx) => {
+    try {
+      if (!isAdmin(ctx.from.id)) {
+        await ctx.reply('❌ У вас нет прав для выполнения этой команды.');
+        return;
+      }
+
+      const adId = parseInt(ctx.message.text.split(' ')[1]);
+      if (!adId) {
+        await ctx.reply('❌ Укажите ID рекламы: /admin_send_ad 1');
+        return;
+      }
+
+      await ctx.reply('⏳ Отправка рекламы начата...');
+
+      const { getAdvertisement, getTargetUsersForAdvertisement, updateAdvertisementStatus, logAdvertisementSend } = require('./database');
+      
+      const ad = await getAdvertisement(adId);
+      if (!ad) {
+        await ctx.reply(`❌ Реклама с ID ${adId} не найдена.`);
+        return;
+      }
+
+      const targetUsers = await getTargetUsersForAdvertisement(ad);
+      
+      if (targetUsers.length === 0) {
+        await ctx.reply('❌ Нет пользователей для отправки рекламы.');
+        return;
+      }
+
+      let sentCount = 0;
+      let errorCount = 0;
+
+      for (const user of targetUsers) {
+        try {
+          await bot.telegram.sendMessage(
+            user.telegram_id,
+            `📢 <b>${ad.title}</b>\n\n${ad.message}`,
+            { parse_mode: 'HTML' }
+          );
+          await logAdvertisementSend(adId, user.id, 'sent');
+          sentCount++;
+          
+          // Задержка чтобы не превысить лимиты Telegram API
+          await new Promise(resolve => setTimeout(resolve, 50));
+        } catch (err) {
+          console.error(`Error sending ad ${adId} to user ${user.id}:`, err);
+          await logAdvertisementSend(adId, user.id, 'error', err.message);
+          errorCount++;
+        }
+      }
+
+      await updateAdvertisementStatus(adId, sentCount, new Date().toISOString());
+
+      await ctx.reply(
+        `✅ Реклама отправлена!\n\n` +
+        `📊 Отправлено: ${sentCount}\n` +
+        `❌ Ошибок: ${errorCount}\n` +
+        `👥 Всего: ${targetUsers.length}`,
+        { parse_mode: 'HTML' }
+      );
+    } catch (err) {
+      console.error('Error in /admin_send_ad command:', err);
+      await ctx.reply('❌ Ошибка при отправке рекламы.');
+    }
+  });
+
   bot.action('show_help', async (ctx) => {
     try {
       await ctx.answerCbQuery();

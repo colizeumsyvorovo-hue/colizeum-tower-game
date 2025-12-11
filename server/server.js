@@ -12,7 +12,16 @@ const {
   getLeaderboard,
   getUserRank,
   getBonusGameHistory,
-  exchangeBonuses
+  exchangeBonuses,
+  getDailyStats,
+  getDailyStatsSummary,
+  updateDailyGamesCount,
+  createAdvertisement,
+  getAdvertisements,
+  getAdvertisement,
+  updateAdvertisementStatus,
+  logAdvertisementSend,
+  getTargetUsersForAdvertisement
 } = require('./database');
 const { generateToken, authMiddleware, validateTelegramWebApp } = require('./auth');
 
@@ -563,6 +572,120 @@ app.get('/api/bonus/history', authMiddleware, async (req, res) => {
     res.json({ history });
   } catch (err) {
     console.error('Get bonus history error:', err);
+    res.status(500).json({ error: 'Failed to get bonus history' });
+  }
+});
+
+// API: Получить ежедневную статистику
+app.get('/api/admin/daily-stats', async (req, res) => {
+  try {
+    // В production здесь должна быть проверка прав администратора
+    const { getDailyStats, getDailyStatsSummary } = require('./database');
+    const date = req.query.date || null;
+    
+    const summary = await getDailyStatsSummary(date);
+    const details = await getDailyStats(date);
+    
+    res.json({
+      date: date || new Date().toISOString().split('T')[0],
+      summary,
+      details
+    });
+  } catch (err) {
+    console.error('Get daily stats error:', err);
+    res.status(500).json({ error: 'Failed to get daily stats' });
+  }
+});
+
+// API: Создать рекламное сообщение
+app.post('/api/admin/advertisement/create', async (req, res) => {
+  try {
+    const { createAdvertisement } = require('./database');
+    const { title, message, targetAllUsers = true, minGames = 0, minBonuses = 0 } = req.body;
+    
+    if (!title || !message) {
+      return res.status(400).json({ error: 'Title and message are required' });
+    }
+    
+    const adId = await createAdvertisement(title, message, {
+      targetAllUsers,
+      minGames,
+      minBonuses
+    });
+    
+    res.json({ success: true, advertisementId: adId });
+  } catch (err) {
+    console.error('Create advertisement error:', err);
+    res.status(500).json({ error: 'Failed to create advertisement' });
+  }
+});
+
+// API: Получить список рекламных сообщений
+app.get('/api/admin/advertisements', async (req, res) => {
+  try {
+    const { getAdvertisements } = require('./database');
+    const activeOnly = req.query.active === 'true';
+    const ads = await getAdvertisements(activeOnly);
+    res.json({ advertisements: ads });
+  } catch (err) {
+    console.error('Get advertisements error:', err);
+    res.status(500).json({ error: 'Failed to get advertisements' });
+  }
+});
+
+// API: Отправить рекламное сообщение
+app.post('/api/admin/advertisement/:adId/send', async (req, res) => {
+  try {
+    const { getAdvertisement, getTargetUsersForAdvertisement, updateAdvertisementStatus, logAdvertisementSend } = require('./database');
+    const bot = require('./telegram');
+    const adId = parseInt(req.params.adId);
+    
+    if (!bot) {
+      return res.status(500).json({ error: 'Bot not initialized' });
+    }
+    
+    const ad = await getAdvertisement(adId);
+    if (!ad) {
+      return res.status(404).json({ error: 'Advertisement not found' });
+    }
+    
+    const targetUsers = await getTargetUsersForAdvertisement(ad);
+    
+    let sentCount = 0;
+    let errorCount = 0;
+    
+    for (const user of targetUsers) {
+      try {
+        await bot.telegram.sendMessage(
+          user.telegram_id,
+          `📢 <b>${ad.title}</b>\n\n${ad.message}`,
+          { parse_mode: 'HTML' }
+        );
+        await logAdvertisementSend(adId, user.id, 'sent');
+        sentCount++;
+        
+        // Небольшая задержка чтобы не превысить лимиты Telegram API
+        await new Promise(resolve => setTimeout(resolve, 50));
+      } catch (err) {
+        console.error(`Error sending ad ${adId} to user ${user.id}:`, err);
+        await logAdvertisementSend(adId, user.id, 'error', err.message);
+        errorCount++;
+      }
+    }
+    
+    await updateAdvertisementStatus(adId, sentCount, new Date().toISOString());
+    
+    res.json({
+      success: true,
+      sent: sentCount,
+      errors: errorCount,
+      total: targetUsers.length
+    });
+  } catch (err) {
+    console.error('Send advertisement error:', err);
+    res.status(500).json({ error: 'Failed to send advertisement' });
+  }
+});
     res.status(500).json({ error: 'Failed to get bonus history' });
   }
 });
