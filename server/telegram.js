@@ -442,6 +442,43 @@ if (config.telegramBotToken) {
     }
   });
 
+  // Команда /admin_all_stats - общая статистика за все время
+  bot.command('admin_all_stats', async (ctx) => {
+    try {
+      if (!isAdmin(ctx.from.id)) {
+        await ctx.reply('❌ У вас нет прав для выполнения этой команды.');
+        return;
+      }
+
+      const { getAllTimeStats, getAllUsersWithStats } = require('./database');
+      
+      const allTimeStats = await getAllTimeStats();
+      const topUsers = await getAllUsersWithStats(20, 0);
+      
+      let message = `📊 <b>ОБЩАЯ СТАТИСТИКА ЗА ВСЕ ВРЕМЯ</b>\n\n`;
+      message += `👥 <b>Всего зарегистрировано пользователей:</b> ${allTimeStats.total_users}\n`;
+      message += `🎮 <b>Активных игроков:</b> ${allTimeStats.active_users}\n`;
+      message += `🎯 <b>Всего игр сыграно:</b> ${allTimeStats.total_games || 0}\n`;
+      message += `💰 <b>Всего бонусов заработано:</b> ${allTimeStats.total_bonuses || 0}\n`;
+      message += `🏆 <b>Лучший результат:</b> ${allTimeStats.best_score || 0} этажей\n`;
+      message += `📈 <b>Новых пользователей за 7 дней:</b> ${allTimeStats.new_users_7d || 0}\n`;
+      message += `📈 <b>Новых пользователей за 30 дней:</b> ${allTimeStats.new_users_30d || 0}\n\n`;
+      
+      if (topUsers.length > 0) {
+        message += `<b>Топ-20 активных игроков:</b>\n`;
+        topUsers.forEach((user, index) => {
+          const username = user.username ? `@${user.username}` : user.first_name || 'Без имени';
+          message += `${index + 1}. ${username} - ${user.total_games || 0} игр, ${user.best_score || 0} этажей, ${user.total_bonuses || 0} бонусов\n`;
+        });
+      }
+      
+      await ctx.reply(message, { parse_mode: 'HTML' });
+    } catch (err) {
+      console.error('Error in /admin_all_stats command:', err);
+      await ctx.reply('❌ Ошибка при получении общей статистики.');
+    }
+  });
+
   // Команда /admin_ad - создать рекламу
   bot.command('admin_ad', async (ctx) => {
     try {

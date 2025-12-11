@@ -410,24 +410,29 @@ const canPlayBonusGame = async (userId) => {
 
       const lastAttempt = new Date(row.last_attempt);
       const now = new Date();
-      const timeDiff = now - lastAttempt;
+      const timeDiff = now.getTime() - lastAttempt.getTime();
+      
+      // Убеждаемся, что cooldown точно 24 часа (86400000 мс)
+      const cooldownMs = 24 * 60 * 60 * 1000; // Точно 24 часа
       
       console.log(`User ${userId} bonus game check:`, {
         lastAttempt: lastAttempt.toISOString(),
         now: now.toISOString(),
         timeDiff: timeDiff,
-        cooldown: config.bonusGameCooldown,
-        canPlay: timeDiff >= config.bonusGameCooldown
+        timeDiffHours: (timeDiff / (1000 * 60 * 60)).toFixed(2),
+        cooldown: cooldownMs,
+        cooldownHours: (cooldownMs / (1000 * 60 * 60)).toFixed(2),
+        canPlay: timeDiff >= cooldownMs
       });
 
       // Проверяем, прошло ли 24 часа с последней попытки
-      if (timeDiff >= config.bonusGameCooldown) {
+      if (timeDiff >= cooldownMs) {
         console.log(`User ${userId} can play - 24 hours passed`);
         resolve({ canPlay: true, nextAvailable: null });
       } else {
-        const nextAvailable = new Date(lastAttempt.getTime() + config.bonusGameCooldown);
-        const hoursLeft = Math.floor((config.bonusGameCooldown - timeDiff) / (1000 * 60 * 60));
-        const minutesLeft = Math.floor(((config.bonusGameCooldown - timeDiff) % (1000 * 60 * 60)) / (1000 * 60));
+        const nextAvailable = new Date(lastAttempt.getTime() + cooldownMs);
+        const hoursLeft = Math.floor((cooldownMs - timeDiff) / (1000 * 60 * 60));
+        const minutesLeft = Math.floor(((cooldownMs - timeDiff) % (1000 * 60 * 60)) / (1000 * 60));
         console.log(`User ${userId} cannot play - ${hoursLeft}h ${minutesLeft}m left`);
         resolve({ canPlay: false, nextAvailable });
       }
@@ -596,6 +601,62 @@ const getDailyStatsSummary = (date = null) => {
   });
 };
 
+// Функция для получения общей статистики за все время
+const getAllTimeStats = () => {
+  return new Promise((resolve, reject) => {
+    db.get(
+      `SELECT 
+        COUNT(DISTINCT u.id) as total_users,
+        SUM(u.total_games) as total_games,
+        SUM(u.total_bonuses) as total_bonuses,
+        MAX(u.best_score) as best_score,
+        COUNT(DISTINCT CASE WHEN u.total_games > 0 THEN u.id END) as active_users,
+        COUNT(DISTINCT CASE WHEN u.created_at >= date('now', '-7 days') THEN u.id END) as new_users_7d,
+        COUNT(DISTINCT CASE WHEN u.created_at >= date('now', '-30 days') THEN u.id END) as new_users_30d
+      FROM users u`,
+      [],
+      (err, row) => {
+        if (err) reject(err);
+        else resolve(row || {
+          total_users: 0,
+          total_games: 0,
+          total_bonuses: 0,
+          best_score: 0,
+          active_users: 0,
+          new_users_7d: 0,
+          new_users_30d: 0
+        });
+      }
+    );
+  });
+};
+
+// Функция для получения списка всех пользователей с деталями
+const getAllUsersWithStats = (limit = 100, offset = 0) => {
+  return new Promise((resolve, reject) => {
+    db.all(
+      `SELECT 
+        u.id,
+        u.telegram_id,
+        u.username,
+        u.first_name,
+        u.created_at,
+        u.total_games,
+        u.total_bonuses,
+        u.best_score,
+        (SELECT COUNT(*) FROM games WHERE user_id = u.id) as games_count
+      FROM users u
+      ORDER BY u.total_games DESC, u.best_score DESC
+      LIMIT ? OFFSET ?`,
+      [limit, offset],
+      (err, rows) => {
+        if (err) reject(err);
+        else resolve(rows || []);
+      }
+    );
+  });
+};
+
 const updateDailyGamesCount = (userId, date = null) => {
   return new Promise((resolve, reject) => {
     const targetDate = date || new Date().toISOString().split('T')[0];
@@ -733,6 +794,8 @@ module.exports = {
   getDailyStats,
   getDailyStatsSummary,
   updateDailyGamesCount,
+  getAllTimeStats,
+  getAllUsersWithStats,
   createAdvertisement,
   getAdvertisements,
   getAdvertisement,

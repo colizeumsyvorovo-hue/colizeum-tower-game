@@ -597,6 +597,32 @@ app.get('/api/admin/daily-stats', async (req, res) => {
   }
 });
 
+// API: Получить общую статистику за все время
+app.get('/api/admin/all-time-stats', async (req, res) => {
+  try {
+    // В production здесь должна быть проверка прав администратора
+    const { getAllTimeStats, getAllUsersWithStats } = require('./database');
+    
+    const allTimeStats = await getAllTimeStats();
+    const limit = parseInt(req.query.limit) || 50;
+    const offset = parseInt(req.query.offset) || 0;
+    const users = await getAllUsersWithStats(limit, offset);
+    
+    res.json({
+      stats: allTimeStats,
+      users,
+      pagination: {
+        limit,
+        offset,
+        total: allTimeStats.total_users
+      }
+    });
+  } catch (err) {
+    console.error('Get all-time stats error:', err);
+    res.status(500).json({ error: 'Failed to get all-time stats' });
+  }
+});
+
 // API: Создать рекламное сообщение
 app.post('/api/admin/advertisement/create', async (req, res) => {
   try {
