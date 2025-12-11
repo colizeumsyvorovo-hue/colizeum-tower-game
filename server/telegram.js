@@ -10,13 +10,25 @@ if (config.telegramBotToken) {
 
   // Логирование всех входящих обновлений для отладки
   bot.use(async (ctx, next) => {
-    console.log('📨 Bot update received:', {
-      update_id: ctx.update?.update_id,
-      type: ctx.updateType,
-      message: ctx.message ? { text: ctx.message.text, command: ctx.message.entities?.[0]?.type } : null,
-      callback_query: ctx.callbackQuery ? { data: ctx.callbackQuery.data } : null
-    });
-    return next();
+    try {
+      console.log('📨 Bot update received:', {
+        update_id: ctx.update?.update_id,
+        type: ctx.updateType,
+        message: ctx.message ? { text: ctx.message.text, command: ctx.message.entities?.[0]?.type } : null,
+        callback_query: ctx.callbackQuery ? { data: ctx.callbackQuery.data } : null
+      });
+      await next();
+    } catch (err) {
+      console.error('❌ Error in bot middleware:', err);
+      // Не пробрасываем ошибку дальше, чтобы не упал процесс
+      try {
+        if (ctx && ctx.reply) {
+          await ctx.reply('Произошла ошибка. Попробуйте позже или используйте команду /help.').catch(() => {});
+        }
+      } catch (replyErr) {
+        console.error('Error sending error message:', replyErr);
+      }
+    }
   });
 
   // Команда /start
@@ -454,8 +466,26 @@ if (config.telegramBotToken) {
 
   // Обработка ошибок бота
   bot.catch((err, ctx) => {
-    console.error('Bot error occurred:', err);
-    console.error('Update:', ctx.update);
+    console.error('❌ Bot error occurred:', err);
+    console.error('Error message:', err.message);
+    console.error('Error stack:', err.stack);
+    if (ctx && ctx.update) {
+      console.error('Update ID:', ctx.update.update_id);
+      console.error('Update type:', ctx.updateType);
+    }
+    
+    // Пытаемся ответить пользователю об ошибке (безопасно)
+    try {
+      if (ctx && ctx.reply) {
+        ctx.reply('❌ Произошла ошибка. Попробуйте позже или используйте команду /help.').catch((replyErr) => {
+          console.error('Error sending error message to user:', replyErr);
+        });
+      }
+    } catch (replyErr) {
+      console.error('Error in error handler reply:', replyErr);
+    }
+    
+    // Не пробрасываем ошибку дальше, чтобы не упал процесс
   });
 
   // Graceful stop (только если бот запущен в polling режиме)

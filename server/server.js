@@ -16,6 +16,22 @@ const {
 } = require('./database');
 const { generateToken, authMiddleware, validateTelegramWebApp } = require('./auth');
 
+// Обработка необработанных промисов и исключений
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('❌ Unhandled Rejection at:', promise, 'reason:', reason);
+  console.error('Stack:', reason?.stack);
+  // Не завершаем процесс, а только логируем
+});
+
+process.on('uncaughtException', (error) => {
+  console.error('❌ Uncaught Exception:', error);
+  console.error('Stack:', error.stack);
+  // Даем время на логирование, затем завершаем процесс
+  setTimeout(() => {
+    process.exit(1);
+  }, 1000);
+});
+
 const app = express();
 
 // Middleware
@@ -32,15 +48,25 @@ if (bot) {
   // webhookCallback возвращает middleware для Express
   const webhookMiddleware = bot.webhookCallback('/webhook');
   
-  // Добавляем логирование перед обработкой
-  app.post('/webhook', (req, res, next) => {
-    console.log('📥 Webhook update received:', {
-      update_id: req.body?.update_id,
-      message: req.body?.message ? 'message' : 'other',
-      callback_query: req.body?.callback_query ? 'callback_query' : 'none'
-    });
-    next();
-  }, webhookMiddleware);
+  // Добавляем логирование и обработку ошибок перед обработкой
+  app.post('/webhook', async (req, res, next) => {
+    try {
+      console.log('📥 Webhook update received:', {
+        update_id: req.body?.update_id,
+        message: req.body?.message ? 'message' : 'other',
+        callback_query: req.body?.callback_query ? 'callback_query' : 'none'
+      });
+      await webhookMiddleware(req, res, next);
+    } catch (err) {
+      console.error('❌ Error in webhook handler:', err);
+      console.error('Error message:', err.message);
+      console.error('Error stack:', err.stack);
+      // Всегда отвечаем 200, чтобы Telegram не повторял запрос
+      if (!res.headersSent) {
+        res.status(200).json({ ok: false, error: 'Internal error' });
+      }
+    }
+  });
   
   console.log('✅ Webhook endpoint registered: POST /webhook');
   
