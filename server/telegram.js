@@ -5,6 +5,35 @@ const { generateToken } = require('./auth');
 
 let bot = null;
 
+// Функция для проверки подписки пользователя на канал
+async function checkChannelSubscription(userId) {
+  if (!config.requiredChannel || !bot) {
+    // Если канал не указан или бот не инициализирован, разрешаем доступ
+    return true;
+  }
+
+  try {
+    const channelUsername = config.requiredChannel.replace('@', '');
+    const member = await bot.telegram.getChatMember(channelUsername, userId);
+    
+    // Статусы, которые считаются подпиской: member, administrator, creator
+    const subscribedStatuses = ['member', 'administrator', 'creator'];
+    const isSubscribed = subscribedStatuses.includes(member.status);
+    
+    console.log(`🔍 Subscription check for user ${userId} in ${config.requiredChannel}:`, {
+      status: member.status,
+      isSubscribed
+    });
+    
+    return isSubscribed;
+  } catch (err) {
+    console.error(`❌ Error checking subscription for user ${userId}:`, err);
+    // При ошибке (например, бот не админ в канале) разрешаем доступ
+    // Это можно изменить на false, если нужна строгая проверка
+    return true;
+  }
+}
+
 if (config.telegramBotToken) {
   bot = new Telegraf(config.telegramBotToken);
 
@@ -47,6 +76,37 @@ if (config.telegramBotToken) {
       if (!user || !user.id) {
         console.error('[/start] Invalid user data:', user);
         await ctx.reply('Ошибка: Не удалось получить данные пользователя. Попробуйте позже.');
+        return;
+      }
+
+      // Проверяем подписку на канал
+      const isSubscribed = await checkChannelSubscription(user.id);
+      if (!isSubscribed) {
+        const channelLink = config.requiredChannel || '@colizeum_kamensk_uralskiy';
+        await ctx.reply(
+          `⚠️ <b>Для игры требуется подписка на наш канал!</b>\n\n` +
+          `📢 Подпишитесь на канал: ${channelLink}\n\n` +
+          `После подписки используйте команду /start еще раз.`,
+          {
+            parse_mode: 'HTML',
+            reply_markup: {
+              inline_keyboard: [
+                [
+                  {
+                    text: '📢 Подписаться на канал',
+                    url: `https://t.me/${channelLink.replace('@', '')}`
+                  }
+                ],
+                [
+                  {
+                    text: '✅ Я подписался',
+                    callback_data: 'check_subscription'
+                  }
+                ]
+              ]
+            }
+          }
+        );
         return;
       }
 
@@ -156,6 +216,48 @@ if (config.telegramBotToken) {
       } catch (replyErr) {
         console.error('[/start] Error sending error message:', replyErr);
       }
+    }
+  });
+
+  // Callback для проверки подписки после того, как пользователь подписался
+  bot.action('check_subscription', async (ctx) => {
+    try {
+      await ctx.answerCbQuery('Проверяю подписку...');
+      
+      const userId = ctx.from.id;
+      const isSubscribed = await checkChannelSubscription(userId);
+      
+      if (isSubscribed) {
+        await ctx.reply('✅ Отлично! Вы подписаны на канал. Теперь используйте команду /start для начала игры!');
+      } else {
+        const channelLink = config.requiredChannel || '@colizeum_kamensk_uralskiy';
+        await ctx.reply(
+          `❌ Вы еще не подписаны на канал.\n\n` +
+          `Пожалуйста, подпишитесь: ${channelLink}\n` +
+          `Затем нажмите кнопку "✅ Я подписался" еще раз.`,
+          {
+            reply_markup: {
+              inline_keyboard: [
+                [
+                  {
+                    text: '📢 Подписаться на канал',
+                    url: `https://t.me/${channelLink.replace('@', '')}`
+                  }
+                ],
+                [
+                  {
+                    text: '✅ Я подписался',
+                    callback_data: 'check_subscription'
+                  }
+                ]
+              ]
+            }
+          }
+        );
+      }
+    } catch (err) {
+      console.error('Error in check_subscription callback:', err);
+      await ctx.answerCbQuery('Произошла ошибка').catch(() => {});
     }
   });
 
@@ -755,5 +857,8 @@ if (config.telegramBotToken) {
 } else {
   console.warn('Telegram bot token not provided. Bot will not work.');
 }
+
+// Экспортируем функцию проверки подписки для использования в других модулях
+module.exports.checkChannelSubscription = checkChannelSubscription;
 
 module.exports = bot;

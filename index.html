@@ -1218,10 +1218,24 @@
           const data = await response.json();
           console.log('User info loaded:', data);
           currentUser = data.user;
+          
+          // Проверяем подписку на канал
+          if (currentUser && currentUser.isSubscribed === false && currentUser.channelLink) {
+            showSubscriptionRequired(currentUser.channelLink);
+            return;
+          }
+          
           updateUI();
         } else {
           const errorData = await response.json().catch(() => ({}));
           console.error('Load user info failed:', response.status, errorData);
+          
+          // Обработка ошибки подписки
+          if (response.status === 403 && errorData.channel) {
+            showSubscriptionRequired(errorData.channel);
+            return;
+          }
+          
           // Не удаляем токен сразу, возможно временная ошибка
           if (response.status === 401) {
             localStorage.removeItem('authToken');
@@ -1938,7 +1952,51 @@
       }
     }
 
+    // Функция для отображения сообщения о необходимости подписки
+    function showSubscriptionRequired(channelLink) {
+      const channelName = channelLink.replace('@', '');
+      const channelUrl = `https://t.me/${channelName}`;
+      
+      // Создаем модальное окно для подписки
+      const modalHtml = `
+        <div id="subscriptionModal" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 10000; display: flex; align-items: center; justify-content: center;">
+          <div style="background: white; border-radius: 15px; padding: 2rem; max-width: 90%; text-align: center; box-shadow: 0 4px 20px rgba(0,0,0,0.3);">
+            <div style="font-size: 3rem; margin-bottom: 1rem;">📢</div>
+            <h2 style="color: #333; margin-bottom: 1rem;">Требуется подписка на канал</h2>
+            <p style="color: #666; margin-bottom: 1.5rem; line-height: 1.6;">
+              Для игры в Colizeum Tower Game необходимо подписаться на наш канал.<br><br>
+              После подписки обновите страницу или используйте команду /start в боте.
+            </p>
+            <div style="display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
+              <a href="${channelUrl}" target="_blank" style="background: #667eea; color: white; padding: 1rem 2rem; border-radius: 8px; text-decoration: none; font-weight: bold; display: inline-block;">
+                📢 Подписаться на канал
+              </a>
+              <button onclick="location.reload()" style="background: #28a745; color: white; padding: 1rem 2rem; border-radius: 8px; border: none; font-weight: bold; cursor: pointer;">
+                🔄 Обновить страницу
+              </button>
+            </div>
+          </div>
+        </div>
+      `;
+      
+      // Удаляем предыдущее модальное окно, если есть
+      $('#subscriptionModal').remove();
+      
+      // Добавляем модальное окно
+      $('body').append(modalHtml);
+      
+      // Блокируем доступ к игре
+      $('#gameModeSelection').addClass('hide');
+    }
+
     async function startGame(gameType) {
+      // Проверяем подписку перед началом игры
+      if (currentUser && currentUser.isSubscribed === false) {
+        const channelLink = currentUser.channelLink || '@colizeum_kamensk_uralskiy';
+        showSubscriptionRequired(channelLink);
+        return;
+      }
+
       if (gameType === 'bonus' && $('#modeBonus').hasClass('disabled')) {
         alert('Игра за бонусы пока недоступна. Попробуйте позже!');
         return;
@@ -1959,6 +2017,13 @@
           console.log('Bonus game start response status:', response.status);
 
           if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            
+            // Проверяем ошибку подписки
+            if (response.status === 403 && errorData.error === 'Channel subscription required') {
+              showSubscriptionRequired(errorData.channel || '@colizeum_kamensk_uralskiy');
+              return;
+            }
             let errorMessage = 'Не удалось начать игру за бонусы';
             try {
               const error = await response.json();

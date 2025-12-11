@@ -14,6 +14,7 @@ module.exports = {
     minScore: 100,
     baseBonus: 10,
     maxBonus: 500
-  }
+  },
+  requiredChannel: '@colizeum_kamensk_uralskiy' // Обязательный канал для подписки
 };
 

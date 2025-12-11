@@ -186,6 +186,17 @@ app.get('/api/user/me', authMiddleware, async (req, res) => {
       return res.status(401).json({ error: 'Invalid user data' });
     }
     
+    // Проверяем подписку на канал
+    const { checkChannelSubscription } = require('./telegram');
+    let isSubscribed = true;
+    let channelLink = null;
+    if (checkChannelSubscription) {
+      isSubscribed = await checkChannelSubscription(req.user.telegramId);
+      if (!isSubscribed) {
+        channelLink = config.requiredChannel || '@colizeum_kamensk_uralskiy';
+      }
+    }
+    
     const { getUserByTelegramId, getOrCreateUser } = require('./database');
     let user = await getUserByTelegramId(req.user.telegramId);
     
@@ -219,7 +230,9 @@ app.get('/api/user/me', authMiddleware, async (req, res) => {
         id: user.id,
         telegramId: user.telegram_id,
         username: user.username,
-        firstName: user.first_name
+        firstName: user.first_name,
+        isSubscribed: isSubscribed,
+        channelLink: channelLink
       },
       stats,
       bonusInfo
@@ -286,6 +299,21 @@ app.post('/api/game/bonus/start', authMiddleware, async (req, res) => {
   try {
     console.log('[/api/game/bonus/start] Request received from user:', req.user.telegramId);
 
+    // Проверяем подписку на канал
+    const { checkChannelSubscription } = require('./telegram');
+    if (checkChannelSubscription) {
+      const isSubscribed = await checkChannelSubscription(req.user.telegramId);
+      if (!isSubscribed) {
+        const config = require('./config');
+        const channelLink = config.requiredChannel || '@colizeum_kamensk_uralskiy';
+        return res.status(403).json({ 
+          error: 'Channel subscription required',
+          message: `Для игры требуется подписка на канал: ${channelLink}`,
+          channel: channelLink
+        });
+      }
+    }
+
     const { getUserByTelegramId, getOrCreateUser } = require('./database');
 
     // Получаем пользователя из базы данных
@@ -348,6 +376,21 @@ app.post('/api/game/bonus/start', authMiddleware, async (req, res) => {
 // API: Сохранить результат игры
 app.post('/api/game/save', authMiddleware, async (req, res) => {
   try {
+    // Проверяем подписку на канал перед сохранением игры
+    const { checkChannelSubscription } = require('./telegram');
+    if (checkChannelSubscription) {
+      const isSubscribed = await checkChannelSubscription(req.user.telegramId);
+      if (!isSubscribed) {
+        const config = require('./config');
+        const channelLink = config.requiredChannel || '@colizeum_kamensk_uralskiy';
+        return res.status(403).json({ 
+          error: 'Channel subscription required',
+          message: `Для игры требуется подписка на канал: ${channelLink}`,
+          channel: channelLink
+        });
+      }
+    }
+
     const { gameType, score, floors, perfectCount = 0, normalCount = 0 } = req.body;
 
     if (!gameType || score === undefined || floors === undefined) {
