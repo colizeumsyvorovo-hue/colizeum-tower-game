@@ -64,15 +64,8 @@ if (bot) {
         callback_data: req.body?.callback_query?.data
       });
       
-      // Всегда отвечаем быстро, чтобы Telegram не считал запрос зависшим
-      res.status(200).json({ ok: true });
-      
-      // Обрабатываем асинхронно
-      await webhookMiddleware(req, res, next).catch(err => {
-        console.error('❌ Error in webhook middleware:', err);
-        console.error('Error message:', err.message);
-        console.error('Error stack:', err.stack);
-      });
+      // Обрабатываем через Telegraf middleware (он сам отправит ответ)
+      await webhookMiddleware(req, res, next);
     } catch (err) {
       console.error('❌ Error in webhook handler:', err);
       console.error('Error message:', err.message);
