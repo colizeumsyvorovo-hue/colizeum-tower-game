@@ -13,14 +13,21 @@ async function checkChannelSubscription(userId) {
   }
 
   try {
-    let channelUsername = config.requiredChannel.replace('@', '');
+    let channelIdentifier = config.requiredChannel.replace('@', '');
     
-    // Пробуем разные форматы имени канала
-    const channelFormats = [
-      channelUsername,           // colizeum_kamensk_uralskiy
-      `@${channelUsername}`,     // @colizeum_kamensk_uralskiy
-      `-100${channelUsername}`,   // Если это ID канала (для приватных каналов)
-    ];
+    // Определяем формат канала и пробуем разные варианты
+    const channelFormats = [];
+    
+    // Если это числовой ID (начинается с -100 или просто число)
+    if (channelIdentifier.match(/^-?\d+$/)) {
+      // Это уже ID канала
+      channelFormats.push(channelIdentifier);  // -1001935382352
+      // Не добавляем -100, так как он уже есть
+    } else {
+      // Это username канала
+      channelFormats.push(channelIdentifier);           // colizeum_kamensk_uralskiy
+      channelFormats.push(`@${channelIdentifier}`);     // @colizeum_kamensk_uralskiy
+    }
     
     let lastError = null;
     
@@ -41,9 +48,12 @@ async function checkChannelSubscription(userId) {
         return isSubscribed;
       } catch (err) {
         lastError = err;
-        // Продолжаем пробовать другие форматы
+        // Продолжаем пробовать другие форматы только если есть другие форматы
         if (err.response?.error_code === 400 && err.response?.description?.includes('chat not found')) {
-          console.log(`⚠️ Channel ${channelId} not found, trying next format...`);
+          // Логируем только если есть еще форматы для проверки
+          if (channelFormats.indexOf(channelId) < channelFormats.length - 1) {
+            console.log(`⚠️ Channel ${channelId} not found, trying next format...`);
+          }
           continue;
         }
         // Если это другая ошибка (не "chat not found"), пробуем следующий формат
@@ -52,22 +62,33 @@ async function checkChannelSubscription(userId) {
     }
     
     // Если все форматы не сработали
-    console.error(`❌ Error checking subscription for user ${userId}: All channel formats failed`, {
-      channel: config.requiredChannel,
-      lastError: lastError?.response?.description || lastError?.message
-    });
+    // Логируем ошибку только один раз в минуту для каждого канала (чтобы не спамить логи)
+    const errorKey = `channel_error_${config.requiredChannel}`;
+    const lastErrorTime = global[errorKey] || 0;
+    const now = Date.now();
     
-    // Если ошибка "chat not found" - это значит, что бот не может найти канал
-    // Возможные причины: бот не добавлен в канал, неправильное имя канала, канал приватный
-    // В этом случае разрешаем доступ, но логируем предупреждение
-    if (lastError?.response?.error_code === 400 && lastError?.response?.description?.includes('chat not found')) {
-      console.warn(`⚠️ WARNING: Bot cannot access channel ${config.requiredChannel}. Make sure:`);
-      console.warn(`   1. Bot is added to the channel as administrator`);
-      console.warn(`   2. Channel username is correct: ${config.requiredChannel}`);
-      console.warn(`   3. For private channels, use channel ID instead of username`);
-      console.warn(`   Allowing access for now, but subscription check is disabled.`);
-      return true; // Разрешаем доступ при ошибке конфигурации
+    if (now - lastErrorTime > 60000) { // Логируем раз в минуту
+      console.error(`❌ Error checking subscription for user ${userId}: All channel formats failed`, {
+        channel: config.requiredChannel,
+        lastError: lastError?.response?.description || lastError?.message
+      });
+      
+      // Если ошибка "chat not found" - это значит, что бот не может найти канал
+      // Возможные причины: бот не добавлен в канал, неправильное имя канала, канал приватный
+      // В этом случае разрешаем доступ, но логируем предупреждение
+      if (lastError?.response?.error_code === 400 && lastError?.response?.description?.includes('chat not found')) {
+        console.warn(`⚠️ WARNING: Bot cannot access channel ${config.requiredChannel}. Make sure:`);
+        console.warn(`   1. Bot is added to the channel as administrator`);
+        console.warn(`   2. Channel username/ID is correct: ${config.requiredChannel}`);
+        console.warn(`   3. Bot has permission to view chat members`);
+        console.warn(`   Allowing access for now, but subscription check is disabled.`);
+      }
+      
+      global[errorKey] = now;
     }
+    
+    // Разрешаем доступ при ошибке (чтобы не блокировать пользователей из-за проблем с конфигурацией)
+    return true;
     
     // Для других ошибок также разрешаем доступ (чтобы не блокировать пользователей из-за проблем с API)
     return true;
