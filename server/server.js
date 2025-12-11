@@ -164,8 +164,22 @@ app.post('/api/auth/telegram', async (req, res) => {
 // API: Получить информацию о пользователе
 app.get('/api/user/me', authMiddleware, async (req, res) => {
   try {
-    const { getUserByTelegramId } = require('./database');
-    const user = await getUserByTelegramId(req.user.telegramId);
+    if (!req.user || !req.user.telegramId) {
+      return res.status(401).json({ error: 'Invalid user data' });
+    }
+    
+    const { getUserByTelegramId, getOrCreateUser } = require('./database');
+    let user = await getUserByTelegramId(req.user.telegramId);
+    
+    // Если пользователь не найден, создаем его
+    if (!user) {
+      user = await getOrCreateUser(req.user);
+    }
+    
+    if (!user || !user.id) {
+      return res.status(500).json({ error: 'Failed to get or create user' });
+    }
+    
     const stats = await getUserStats(user.id);
     const bonusInfo = await canPlayBonusGame(user.id);
 
@@ -188,14 +202,26 @@ app.get('/api/user/me', authMiddleware, async (req, res) => {
 // API: Проверить доступность игры за бонусы
 app.get('/api/game/bonus/check', authMiddleware, async (req, res) => {
   try {
+    if (!req.user || !req.user.telegramId) {
+      return res.status(401).json({ error: 'Invalid user data' });
+    }
+    
     const { getOrCreateUser } = require('./database');
     // Создаем пользователя, если его еще нет (для новых пользователей)
     const user = await getOrCreateUser(req.user);
+    
+    if (!user || !user.id) {
+      console.error('Check bonus game error: Failed to get or create user', { user, reqUser: req.user });
+      return res.status(500).json({ error: 'Failed to get or create user' });
+    }
+    
     const bonusInfo = await canPlayBonusGame(user.id);
 
     res.json(bonusInfo);
   } catch (err) {
     console.error('Check bonus game error:', err);
+    console.error('Error stack:', err.stack);
+    console.error('Request user:', req.user);
     res.status(500).json({ error: 'Failed to check bonus game availability' });
   }
 });

@@ -84,9 +84,23 @@ const authMiddleware = async (req, res, next) => {
       return res.status(401).json({ error: 'Invalid token' });
     }
 
-    req.user = decoded;
+    // Проверяем, что decoded содержит необходимые поля
+    if (!decoded.telegramId && !decoded.userId) {
+      console.error('Invalid token payload:', decoded);
+      return res.status(401).json({ error: 'Invalid token payload' });
+    }
+
+    // Нормализуем структуру req.user
+    req.user = {
+      telegramId: decoded.telegramId || decoded.userId,
+      userId: decoded.userId,
+      username: decoded.username || null,
+      firstName: decoded.firstName || null
+    };
+
     next();
   } catch (err) {
+    console.error('Auth middleware error:', err);
     res.status(401).json({ error: 'Authentication failed' });
   }
 };
