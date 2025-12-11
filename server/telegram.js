@@ -13,23 +13,67 @@ async function checkChannelSubscription(userId) {
   }
 
   try {
-    const channelUsername = config.requiredChannel.replace('@', '');
-    const member = await bot.telegram.getChatMember(channelUsername, userId);
+    let channelUsername = config.requiredChannel.replace('@', '');
     
-    // Статусы, которые считаются подпиской: member, administrator, creator
-    const subscribedStatuses = ['member', 'administrator', 'creator'];
-    const isSubscribed = subscribedStatuses.includes(member.status);
+    // Пробуем разные форматы имени канала
+    const channelFormats = [
+      channelUsername,           // colizeum_kamensk_uralskiy
+      `@${channelUsername}`,     // @colizeum_kamensk_uralskiy
+      `-100${channelUsername}`,   // Если это ID канала (для приватных каналов)
+    ];
     
-    console.log(`🔍 Subscription check for user ${userId} in ${config.requiredChannel}:`, {
-      status: member.status,
-      isSubscribed
+    let lastError = null;
+    
+    // Пробуем каждый формат
+    for (const channelId of channelFormats) {
+      try {
+        const member = await bot.telegram.getChatMember(channelId, userId);
+        
+        // Статусы, которые считаются подпиской: member, administrator, creator
+        const subscribedStatuses = ['member', 'administrator', 'creator'];
+        const isSubscribed = subscribedStatuses.includes(member.status);
+        
+        console.log(`✅ Subscription check for user ${userId} in ${channelId}:`, {
+          status: member.status,
+          isSubscribed
+        });
+        
+        return isSubscribed;
+      } catch (err) {
+        lastError = err;
+        // Продолжаем пробовать другие форматы
+        if (err.response?.error_code === 400 && err.response?.description?.includes('chat not found')) {
+          console.log(`⚠️ Channel ${channelId} not found, trying next format...`);
+          continue;
+        }
+        // Если это другая ошибка (не "chat not found"), пробуем следующий формат
+        continue;
+      }
+    }
+    
+    // Если все форматы не сработали
+    console.error(`❌ Error checking subscription for user ${userId}: All channel formats failed`, {
+      channel: config.requiredChannel,
+      lastError: lastError?.response?.description || lastError?.message
     });
     
-    return isSubscribed;
+    // Если ошибка "chat not found" - это значит, что бот не может найти канал
+    // Возможные причины: бот не добавлен в канал, неправильное имя канала, канал приватный
+    // В этом случае разрешаем доступ, но логируем предупреждение
+    if (lastError?.response?.error_code === 400 && lastError?.response?.description?.includes('chat not found')) {
+      console.warn(`⚠️ WARNING: Bot cannot access channel ${config.requiredChannel}. Make sure:`);
+      console.warn(`   1. Bot is added to the channel as administrator`);
+      console.warn(`   2. Channel username is correct: ${config.requiredChannel}`);
+      console.warn(`   3. For private channels, use channel ID instead of username`);
+      console.warn(`   Allowing access for now, but subscription check is disabled.`);
+      return true; // Разрешаем доступ при ошибке конфигурации
+    }
+    
+    // Для других ошибок также разрешаем доступ (чтобы не блокировать пользователей из-за проблем с API)
+    return true;
   } catch (err) {
-    console.error(`❌ Error checking subscription for user ${userId}:`, err);
-    // При ошибке (например, бот не админ в канале) разрешаем доступ
-    // Это можно изменить на false, если нужна строгая проверка
+    console.error(`❌ Unexpected error checking subscription for user ${userId}:`, err);
+    // При неожиданной ошибке разрешаем доступ
     return true;
   }
 }
