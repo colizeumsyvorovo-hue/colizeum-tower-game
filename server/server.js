@@ -173,7 +173,20 @@ app.get('/api/user/me', authMiddleware, async (req, res) => {
     
     // Если пользователь не найден, создаем его
     if (!user) {
-      user = await getOrCreateUser(req.user);
+      // Преобразуем req.user в формат, который ожидает getOrCreateUser
+      const telegramUser = {
+        id: req.user.telegramId,
+        username: req.user.username || null,
+        first_name: req.user.firstName || null,
+        last_name: null
+      };
+      try {
+        user = await getOrCreateUser(telegramUser);
+      } catch (createErr) {
+        console.error('Error creating user in /api/user/me:', createErr);
+        // Пытаемся получить пользователя еще раз
+        user = await getUserByTelegramId(req.user.telegramId);
+      }
     }
     
     if (!user || !user.id) {
@@ -206,12 +219,36 @@ app.get('/api/game/bonus/check', authMiddleware, async (req, res) => {
       return res.status(401).json({ error: 'Invalid user data' });
     }
     
-    const { getOrCreateUser } = require('./database');
+    const { getOrCreateUser, getUserByTelegramId } = require('./database');
+    
+    // Преобразуем req.user в формат, который ожидает getOrCreateUser
+    // getOrCreateUser ожидает объект с полем 'id', а у нас 'telegramId'
+    const telegramUser = {
+      id: req.user.telegramId,
+      username: req.user.username || null,
+      first_name: req.user.firstName || null,
+      last_name: null
+    };
+    
     // Создаем пользователя, если его еще нет (для новых пользователей)
-    const user = await getOrCreateUser(req.user);
+    let user = await getUserByTelegramId(telegramUser.id);
+    
+    if (!user) {
+      try {
+        user = await getOrCreateUser(telegramUser);
+      } catch (createErr) {
+        console.error('Error creating user in bonus check:', createErr);
+        // Пытаемся получить пользователя еще раз (возможно, он был создан в другом запросе)
+        user = await getUserByTelegramId(telegramUser.id);
+      }
+    }
     
     if (!user || !user.id) {
-      console.error('Check bonus game error: Failed to get or create user', { user, reqUser: req.user });
+      console.error('Check bonus game error: Failed to get or create user', { 
+        user, 
+        telegramUser,
+        reqUser: req.user 
+      });
       return res.status(500).json({ error: 'Failed to get or create user' });
     }
     
