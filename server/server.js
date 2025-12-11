@@ -51,12 +51,28 @@ if (bot) {
   // Добавляем логирование и обработку ошибок перед обработкой
   app.post('/webhook', async (req, res, next) => {
     try {
+      const updateId = req.body?.update_id;
+      const hasMessage = !!req.body?.message;
+      const hasCallbackQuery = !!req.body?.callback_query;
+      
       console.log('📥 Webhook update received:', {
-        update_id: req.body?.update_id,
-        message: req.body?.message ? 'message' : 'other',
-        callback_query: req.body?.callback_query ? 'callback_query' : 'none'
+        update_id: updateId,
+        has_message: hasMessage,
+        has_callback_query: hasCallbackQuery,
+        message_text: req.body?.message?.text,
+        message_from: req.body?.message?.from?.id,
+        callback_data: req.body?.callback_query?.data
       });
-      await webhookMiddleware(req, res, next);
+      
+      // Всегда отвечаем быстро, чтобы Telegram не считал запрос зависшим
+      res.status(200).json({ ok: true });
+      
+      // Обрабатываем асинхронно
+      await webhookMiddleware(req, res, next).catch(err => {
+        console.error('❌ Error in webhook middleware:', err);
+        console.error('Error message:', err.message);
+        console.error('Error stack:', err.stack);
+      });
     } catch (err) {
       console.error('❌ Error in webhook handler:', err);
       console.error('Error message:', err.message);
