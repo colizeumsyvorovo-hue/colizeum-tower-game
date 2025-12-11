@@ -15,6 +15,6 @@ module.exports = {
     baseBonus: 10,
     maxBonus: 500
   },
-  requiredChannel: '@colizeum_kamensk_uralskiy' // Обязательный канал для подписки
+  requiredChannel: 'colizeum_kamensk_uralskiy' // Обязательный канал для подписки (публичный канал @colizeum_kamensk_uralskiy)
 };
 
