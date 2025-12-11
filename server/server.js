@@ -586,6 +586,25 @@ app.listen(config.port, async () => {
       if (webhookInfo.pending_update_count > 0) {
         console.log(`⚠️  Warning: ${webhookInfo.pending_update_count} pending updates in queue`);
       }
+      
+      // Периодическая проверка webhook (каждые 10 минут)
+      setInterval(async () => {
+        try {
+          const currentWebhookInfo = await bot.telegram.getWebhookInfo();
+          if (currentWebhookInfo.url !== webhookUrl) {
+            console.log('⚠️  Webhook URL changed or missing, re-setting...');
+            await bot.telegram.setWebhook(webhookUrl);
+            console.log('✅ Webhook re-set successfully');
+          } else if (currentWebhookInfo.pending_update_count > 100) {
+            console.log(`⚠️  Too many pending updates (${currentWebhookInfo.pending_update_count}), clearing...`);
+            await bot.telegram.deleteWebhook({ drop_pending_updates: true });
+            await bot.telegram.setWebhook(webhookUrl);
+            console.log('✅ Webhook cleared and re-set');
+          }
+        } catch (checkErr) {
+          console.error('❌ Error checking webhook:', checkErr);
+        }
+      }, 10 * 60 * 1000); // Каждые 10 минут
     } catch (err) {
       console.error('❌ Error setting webhook:', err);
       console.error('Error details:', err.message);
@@ -593,6 +612,18 @@ app.listen(config.port, async () => {
         console.error('Telegram API response:', err.response);
       }
       console.error('Bot will not receive updates until webhook is configured correctly');
+      
+      // Пытаемся переустановить webhook через минуту
+      setTimeout(async () => {
+        try {
+          const webhookUrl = `${config.telegramWebhookUrl}/webhook`;
+          console.log('🔄 Retrying webhook setup...');
+          await bot.telegram.setWebhook(webhookUrl);
+          console.log('✅ Webhook set successfully on retry');
+        } catch (retryErr) {
+          console.error('❌ Retry failed:', retryErr);
+        }
+      }, 60 * 1000);
     }
   } else if (config.telegramBotToken) {
     console.log(`⚠️  Bot token found but webhook URL not set - bot will work in polling mode`);
