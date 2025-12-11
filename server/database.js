@@ -169,14 +169,26 @@ const getOrCreateUser = async (telegramUser) => {
   // Записываем статистику активности (ежедневная статистика)
   if (user) {
     const today = new Date().toISOString().split('T')[0];
+    // Используем INSERT OR REPLACE или проверку существования
     db.run(
-      `INSERT INTO daily_user_stats (user_id, date, first_seen_at, last_seen_at)
-       VALUES (?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-       ON CONFLICT(user_id, date) DO UPDATE SET last_seen_at = CURRENT_TIMESTAMP`,
+      `INSERT OR IGNORE INTO daily_user_stats (user_id, date, first_seen_at, last_seen_at)
+       VALUES (?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`,
       [user.id, today],
       (err) => {
         if (err) {
           console.error('Error recording daily user stats:', err);
+        } else {
+          // Обновляем last_seen_at если запись уже существует
+          db.run(
+            `UPDATE daily_user_stats SET last_seen_at = CURRENT_TIMESTAMP 
+             WHERE user_id = ? AND date = ?`,
+            [user.id, today],
+            (updateErr) => {
+              if (updateErr) {
+                console.error('Error updating last_seen_at:', updateErr);
+              }
+            }
+          );
         }
       }
     );
@@ -309,10 +321,19 @@ const updateUserStats = (userId, score, bonusesEarned) => {
 
                 console.log(`✅ Статистика успешно обновлена для пользователя ${userId}:`, updatedRow);
                 
-                // Обновляем ежедневную статистику игр
-                updateDailyGamesCount(userId).catch(err => {
-                  console.error('Error updating daily games count:', err);
-                });
+                // Обновляем ежедневную статистику игр (используем прямое обращение к БД, чтобы избежать проблем с порядком объявления)
+                const today = new Date().toISOString().split('T')[0];
+                db.run(
+                  `UPDATE daily_user_stats 
+                   SET games_played = games_played + 1 
+                   WHERE user_id = ? AND date = ?`,
+                  [userId, today],
+                  (err) => {
+                    if (err) {
+                      console.error('Error updating daily games count:', err);
+                    }
+                  }
+                );
                 
                 resolve(updatedRow);
               }
