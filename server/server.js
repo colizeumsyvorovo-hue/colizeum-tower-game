@@ -712,9 +712,6 @@ app.post('/api/admin/advertisement/:adId/send', async (req, res) => {
     res.status(500).json({ error: 'Failed to send advertisement' });
   }
 });
-    res.status(500).json({ error: 'Failed to get bonus history' });
-  }
-});
 
 // API: Обменять бонусы (нужно пополнить счет на 50% от суммы бонусов)
 app.post('/api/bonus/exchange', authMiddleware, async (req, res) => {
