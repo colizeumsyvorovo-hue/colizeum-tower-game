@@ -456,6 +456,19 @@ app.post('/api/game/save', authMiddleware, async (req, res) => {
     const gameId = await saveGame(user.id, gameType, score, floors, bonusesEarned);
     console.log(`✅ Игра сохранена с ID: ${gameId}`);
 
+    // Для игры за бонусы обновляем last_attempt при завершении игры (а не при старте)
+    // Это означает, что отсчет 24 часов начинается с момента завершения игры
+    if (gameType === 'bonus') {
+      const { recordBonusAttempt } = require('./database');
+      try {
+        await recordBonusAttempt(user.id);
+        console.log(`✅ Bonus attempt time updated for user ${user.id} after game completion`);
+      } catch (recordErr) {
+        console.error(`❌ Error updating bonus attempt time:`, recordErr);
+        // Не блокируем сохранение игры из-за ошибки обновления времени
+      }
+    }
+
     // Получаем статистику до обновления для проверки уведомлений
     const statsBefore = await getUserStats(user.id);
     const bonusesBefore = statsBefore.total_bonuses || 0;
