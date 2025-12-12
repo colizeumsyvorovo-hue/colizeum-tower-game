@@ -438,9 +438,11 @@ const canPlayBonusGame = async (userId) => {
         resolve({ canPlay: true, nextAvailable: null });
       } else {
         const nextAvailable = new Date(lastAttempt.getTime() + cooldownMs);
-        const hoursLeft = Math.floor((cooldownMs - timeDiff) / (1000 * 60 * 60));
-        const minutesLeft = Math.floor(((cooldownMs - timeDiff) % (1000 * 60 * 60)) / (1000 * 60));
-        console.log(`User ${userId} cannot play - ${hoursLeft}h ${minutesLeft}m left`);
+        const timeLeftMs = cooldownMs - timeDiff;
+        const hoursLeft = Math.floor(timeLeftMs / (1000 * 60 * 60));
+        const minutesLeft = Math.floor((timeLeftMs % (1000 * 60 * 60)) / (1000 * 60));
+        const totalHoursLeft = (timeLeftMs / (1000 * 60 * 60)).toFixed(2);
+        console.log(`User ${userId} cannot play - ${hoursLeft}h ${minutesLeft}m left (total: ${totalHoursLeft} hours, cooldown: ${cooldownMs}ms = ${(cooldownMs / (1000 * 60 * 60)).toFixed(2)} hours)`);
         resolve({ canPlay: false, nextAvailable });
       }
     });
