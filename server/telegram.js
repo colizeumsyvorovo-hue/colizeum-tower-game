@@ -529,25 +529,169 @@ if (config.telegramBotToken) {
   bot.action('info_withdrawal', async (ctx) => {
     try {
       await ctx.answerCbQuery();
+      const user = ctx.from;
+      const dbUser = await getOrCreateUser(user);
+      const { getUserStats, createPromoCode } = require('./database');
+      
+      const stats = await getUserStats(dbUser.id);
+      const totalBonuses = stats.total_bonuses || 0;
+      
+      if (totalBonuses < 500) {
+        const remaining = 500 - totalBonuses;
+        await ctx.reply(
+          `🎁 <b>КАК ВЫВЕСТИ БОНУСЫ</b>\n\n` +
+          `📋 <b>Что нужно сделать:</b>\n\n` +
+          `1️⃣ Накопите <b>500 бонусов</b> в игре\n` +
+          `   ⏳ У вас сейчас: <b>${totalBonuses} бонусов</b>\n` +
+          `   📊 Осталось накопить: <b>${remaining} бонусов</b>\n\n` +
+          `2️⃣ Пополните игровой баланс на <b>50% от суммы</b>\n` +
+          `   💰 Это <b>250 рублей</b> (50% от 500 бонусов)\n\n` +
+          `3️⃣ Получите промокод и покажите его администратору в клубе\n\n` +
+          `4️⃣ Получите свои <b>500 бонусов</b>! 🎊\n\n` +
+          `⏰ <b>Важно:</b> Игра за бонусы доступна <b>только 1 раз в день</b>!`,
+          {
+            parse_mode: 'HTML'
+          }
+        );
+        return;
+      }
+      
+      // Если у пользователя 500+ бонусов, предлагаем создать промокод
       await ctx.reply(
-        `🎁 <b>КАК ВЫВЕСТИ БОНУСЫ</b>\n\n` +
+        `🎁 <b>ВЫВОД БОНУСОВ</b>\n\n` +
+        `✅ У вас накоплено: <b>${totalBonuses} бонусов</b>\n\n` +
         `📋 <b>Что нужно сделать:</b>\n\n` +
-        `1️⃣ Накопите <b>500 бонусов</b> в игре\n\n` +
-        `2️⃣ Пополните игровой баланс на <b>50% от суммы</b>\n` +
-        `   💰 Это <b>250 рублей</b> (50% от 500 бонусов)\n\n` +
-        `3️⃣ Подойдите к ресепшну в одном из клубов:\n` +
+        `1️⃣ Пополните игровой баланс на <b>250 рублей</b> (50% от 500 бонусов)\n\n` +
+        `2️⃣ Получите промокод, нажав кнопку ниже\n\n` +
+        `3️⃣ Покажите промокод администратору в клубе:\n` +
         `   🏢 Суворова 27а\n` +
         `   🏢 Ленина 26\n\n` +
-        `4️⃣ Скажите сотруднику, что хотите вывести бонусы из игры\n\n` +
-        `5️⃣ Получите свои <b>500 бонусов</b>! 🎊\n\n` +
-        `⏰ <b>Важно:</b> Игра за бонусы доступна <b>только 1 раз в день</b>!`,
+        `4️⃣ Получите свои <b>500 бонусов</b>! 🎊`,
         {
-          parse_mode: 'HTML'
+          parse_mode: 'HTML',
+          reply_markup: {
+            inline_keyboard: [
+              [
+                {
+                  text: '🎫 Получить промокод',
+                  callback_data: 'create_promo_code'
+                }
+              ]
+            ]
+          }
         }
       );
     } catch (err) {
       console.error('Error in info_withdrawal callback:', err);
       await ctx.answerCbQuery('Произошла ошибка').catch(() => { });
+    }
+  });
+
+  // Callback для создания промокода
+  bot.action('create_promo_code', async (ctx) => {
+    try {
+      await ctx.answerCbQuery();
+      const user = ctx.from;
+      const dbUser = await getOrCreateUser(user);
+      const { getUserStats, createPromoCode } = require('./database');
+      
+      const stats = await getUserStats(dbUser.id);
+      const totalBonuses = stats.total_bonuses || 0;
+      
+      if (totalBonuses < 500) {
+        await ctx.reply(
+          `❌ Недостаточно бонусов для создания промокода.\n\n` +
+          `У вас: <b>${totalBonuses} бонусов</b>\n` +
+          `Требуется: <b>500 бонусов</b>`,
+          { parse_mode: 'HTML' }
+        );
+        return;
+      }
+      
+      // Создаем промокод
+      const promoResult = await createPromoCode(dbUser.id, 500);
+      const expiresDate = new Date(promoResult.expiresAt).toLocaleString('ru-RU');
+      
+      await ctx.reply(
+        `🎫 <b>ПРОМОКОД СОЗДАН!</b>\n\n` +
+        `Ваш промокод:\n` +
+        `<code>${promoResult.code}</code>\n\n` +
+        `💰 Сумма бонусов: <b>${promoResult.bonusesAmount}</b>\n` +
+        `💵 Требуемое пополнение: <b>${promoResult.requiredDeposit} рублей</b>\n\n` +
+        `📅 Действителен до: ${expiresDate}\n\n` +
+        `📋 <b>Что делать дальше:</b>\n` +
+        `1️⃣ Пополните баланс на <b>${promoResult.requiredDeposit} рублей</b> в клубе\n` +
+        `2️⃣ Покажите этот промокод администратору\n` +
+        `3️⃣ Получите свои бонусы! 🎊\n\n` +
+        `🏢 Клубы:\n` +
+        `• Суворова 27а\n` +
+        `• Ленина 26`,
+        {
+          parse_mode: 'HTML',
+          reply_markup: {
+            inline_keyboard: [
+              [
+                {
+                  text: '📋 Скопировать промокод',
+                  callback_data: `copy_promo_${promoResult.code}`
+                }
+              ]
+            ]
+          }
+        }
+      );
+    } catch (err) {
+      console.error('Error in create_promo_code callback:', err);
+      await ctx.answerCbQuery('Произошла ошибка').catch(() => { });
+      await ctx.reply(`❌ Ошибка при создании промокода: ${err.message}`).catch(() => { });
+    }
+  });
+
+  // Команда для создания промокода
+  bot.command('promo', async (ctx) => {
+    try {
+      const user = ctx.from;
+      const dbUser = await getOrCreateUser(user);
+      const { getUserStats, createPromoCode } = require('./database');
+      
+      const stats = await getUserStats(dbUser.id);
+      const totalBonuses = stats.total_bonuses || 0;
+      
+      if (totalBonuses < 500) {
+        const remaining = 500 - totalBonuses;
+        await ctx.reply(
+          `❌ Недостаточно бонусов для создания промокода.\n\n` +
+          `У вас: <b>${totalBonuses} бонусов</b>\n` +
+          `Требуется: <b>500 бонусов</b>\n` +
+          `Осталось накопить: <b>${remaining} бонусов</b>`,
+          { parse_mode: 'HTML' }
+        );
+        return;
+      }
+      
+      // Создаем промокод
+      const promoResult = await createPromoCode(dbUser.id, 500);
+      const expiresDate = new Date(promoResult.expiresAt).toLocaleString('ru-RU');
+      
+      await ctx.reply(
+        `🎫 <b>ПРОМОКОД СОЗДАН!</b>\n\n` +
+        `Ваш промокод:\n` +
+        `<code>${promoResult.code}</code>\n\n` +
+        `💰 Сумма бонусов: <b>${promoResult.bonusesAmount}</b>\n` +
+        `💵 Требуемое пополнение: <b>${promoResult.requiredDeposit} рублей</b>\n\n` +
+        `📅 Действителен до: ${expiresDate}\n\n` +
+        `📋 <b>Что делать дальше:</b>\n` +
+        `1️⃣ Пополните баланс на <b>${promoResult.requiredDeposit} рублей</b> в клубе\n` +
+        `2️⃣ Покажите этот промокод администратору\n` +
+        `3️⃣ Получите свои бонусы! 🎊\n\n` +
+        `🏢 Клубы:\n` +
+        `• Суворова 27а\n` +
+        `• Ленина 26`,
+        { parse_mode: 'HTML' }
+      );
+    } catch (err) {
+      console.error('Error in /promo command:', err);
+      await ctx.reply(`❌ Ошибка при создании промокода: ${err.message}`);
     }
   });
 
@@ -844,6 +988,204 @@ if (config.telegramBotToken) {
     } catch (err) {
       console.error('Error in /admin_send_ad command:', err);
       await ctx.reply('❌ Ошибка при отправке рекламы.');
+    }
+  });
+
+  // Команда /admin_promo - проверить и активировать промокод
+  bot.command('admin_promo', async (ctx) => {
+    try {
+      if (!isAdmin(ctx.from.id)) {
+        await ctx.reply('❌ У вас нет прав для выполнения этой команды.');
+        return;
+      }
+
+      const args = ctx.message.text.split(' ');
+      if (args.length < 2) {
+        await ctx.reply(
+          '🎫 <b>Проверка промокода</b>\n\n' +
+          'Использование:\n' +
+          '<code>/admin_promo КОД</code>\n\n' +
+          'Пример:\n' +
+          '<code>/admin_promo ABC12345</code>',
+          { parse_mode: 'HTML' }
+        );
+        return;
+      }
+
+      const promoCode = args[1].toUpperCase().trim();
+      const { getPromoCode, activatePromoCode } = require('./database');
+
+      // Получаем информацию о промокоде
+      const promo = await getPromoCode(promoCode);
+
+      if (!promo) {
+        await ctx.reply(`❌ Промокод <b>${promoCode}</b> не найден.`, { parse_mode: 'HTML' });
+        return;
+      }
+
+      // Проверяем статус
+      if (promo.status === 'used') {
+        await ctx.reply(
+          `❌ Промокод <b>${promoCode}</b> уже использован.\n\n` +
+          `Использован: ${new Date(promo.used_at).toLocaleString('ru-RU')}`,
+          { parse_mode: 'HTML' }
+        );
+        return;
+      }
+
+      if (promo.status === 'expired') {
+        await ctx.reply(
+          `❌ Промокод <b>${promoCode}</b> истек.\n\n` +
+          `Срок действия истек: ${new Date(promo.expires_at).toLocaleString('ru-RU')}`,
+          { parse_mode: 'HTML' }
+        );
+        return;
+      }
+
+      // Проверяем срок действия
+      const expiresAt = new Date(promo.expires_at);
+      if (expiresAt < new Date()) {
+        await ctx.reply(
+          `❌ Промокод <b>${promoCode}</b> истек.\n\n` +
+          `Срок действия истек: ${expiresAt.toLocaleString('ru-RU')}`,
+          { parse_mode: 'HTML' }
+        );
+        return;
+      }
+
+      // Показываем информацию о промокоде
+      const userInfo = `${promo.first_name || 'Игрок'}${promo.username ? ` (@${promo.username})` : ''}`;
+      const createdDate = new Date(promo.created_at).toLocaleString('ru-RU');
+      const expiresDate = expiresAt.toLocaleString('ru-RU');
+
+      await ctx.reply(
+        `🎫 <b>Информация о промокоде</b>\n\n` +
+        `Код: <b>${promoCode}</b>\n` +
+        `Игрок: ${userInfo}\n` +
+        `Telegram ID: ${promo.telegram_id}\n\n` +
+        `💰 Сумма бонусов: <b>${promo.bonuses_amount}</b>\n` +
+        `💵 Требуемое пополнение: <b>${promo.required_deposit} рублей</b>\n\n` +
+        `📅 Создан: ${createdDate}\n` +
+        `⏰ Действителен до: ${expiresDate}\n\n` +
+        `Статус: ${promo.status === 'pending' ? '⏳ Ожидает активации' : promo.status}\n\n` +
+        `Для активации промокода отправьте:\n` +
+        `<code>/admin_activate ${promoCode}</code>`,
+        {
+          parse_mode: 'HTML',
+          reply_markup: {
+            inline_keyboard: [
+              [
+                {
+                  text: '✅ Активировать промокод',
+                  callback_data: `activate_promo_${promoCode}`
+                }
+              ]
+            ]
+          }
+        }
+      );
+    } catch (err) {
+      console.error('Error in /admin_promo command:', err);
+      await ctx.reply(`❌ Ошибка: ${err.message}`);
+    }
+  });
+
+  // Команда /admin_activate - активировать промокод
+  bot.command('admin_activate', async (ctx) => {
+    try {
+      if (!isAdmin(ctx.from.id)) {
+        await ctx.reply('❌ У вас нет прав для выполнения этой команды.');
+        return;
+      }
+
+      const args = ctx.message.text.split(' ');
+      if (args.length < 2) {
+        await ctx.reply('❌ Укажите промокод: /admin_activate ABC12345');
+        return;
+      }
+
+      const promoCode = args[1].toUpperCase().trim();
+      const { activatePromoCode, getPromoCode } = require('./database');
+
+      // Активируем промокод
+      const result = await activatePromoCode(promoCode, ctx.from.id);
+
+      // Получаем информацию о пользователе для уведомления
+      const promo = await getPromoCode(promoCode);
+      const { getUserByTelegramId } = require('./database');
+      const user = await getUserByTelegramId(promo.telegram_id);
+
+      // Отправляем уведомление пользователю
+      try {
+        await bot.telegram.sendMessage(
+          promo.telegram_id,
+          `✅ <b>Промокод активирован!</b>\n\n` +
+          `Ваш промокод <b>${promoCode}</b> был успешно активирован администратором.\n\n` +
+          `💰 Вы получили <b>${result.bonusesAmount} бонусов</b>!\n\n` +
+          `🎊 Спасибо за участие в акции "Зимний Подъём"!`,
+          { parse_mode: 'HTML' }
+        );
+      } catch (notifyErr) {
+        console.error('Error sending notification to user:', notifyErr);
+      }
+
+      await ctx.reply(
+        `✅ Промокод <b>${promoCode}</b> успешно активирован!\n\n` +
+        `Игрок: ${promo.first_name || 'Игрок'}${promo.username ? ` (@${promo.username})` : ''}\n` +
+        `Бонусы: <b>${result.bonusesAmount}</b>\n` +
+        `Требуемое пополнение: <b>${result.requiredDeposit} рублей</b>\n\n` +
+        `Пользователь получил уведомление.`,
+        { parse_mode: 'HTML' }
+      );
+    } catch (err) {
+      console.error('Error in /admin_activate command:', err);
+      await ctx.reply(`❌ Ошибка: ${err.message}`);
+    }
+  });
+
+  // Callback для активации промокода через кнопку
+  bot.action(/^activate_promo_(.+)$/, async (ctx) => {
+    try {
+      if (!isAdmin(ctx.from.id)) {
+        await ctx.answerCbQuery('❌ У вас нет прав для выполнения этого действия.');
+        return;
+      }
+
+      const promoCode = ctx.match[1].toUpperCase();
+      const { activatePromoCode, getPromoCode } = require('./database');
+
+      // Активируем промокод
+      const result = await activatePromoCode(promoCode, ctx.from.id);
+
+      // Получаем информацию о промокоде
+      const promo = await getPromoCode(promoCode);
+
+      // Отправляем уведомление пользователю
+      try {
+        await bot.telegram.sendMessage(
+          promo.telegram_id,
+          `✅ <b>Промокод активирован!</b>\n\n` +
+          `Ваш промокод <b>${promoCode}</b> был успешно активирован администратором.\n\n` +
+          `💰 Вы получили <b>${result.bonusesAmount} бонусов</b>!\n\n` +
+          `🎊 Спасибо за участие в акции "Зимний Подъём"!`,
+          { parse_mode: 'HTML' }
+        );
+      } catch (notifyErr) {
+        console.error('Error sending notification to user:', notifyErr);
+      }
+
+      await ctx.answerCbQuery('✅ Промокод активирован!');
+      await ctx.editMessageText(
+        `✅ Промокод <b>${promoCode}</b> успешно активирован!\n\n` +
+        `Игрок: ${promo.first_name || 'Игрок'}${promo.username ? ` (@${promo.username})` : ''}\n` +
+        `Бонусы: <b>${result.bonusesAmount}</b>\n` +
+        `Требуемое пополнение: <b>${result.requiredDeposit} рублей</b>\n\n` +
+        `Пользователь получил уведомление.`,
+        { parse_mode: 'HTML' }
+      );
+    } catch (err) {
+      console.error('Error in activate_promo callback:', err);
+      await ctx.answerCbQuery(`❌ Ошибка: ${err.message}`);
     }
   });
 

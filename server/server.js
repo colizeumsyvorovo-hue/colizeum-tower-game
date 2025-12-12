@@ -13,6 +13,9 @@ const {
   getUserRank,
   getBonusGameHistory,
   exchangeBonuses,
+  createPromoCode,
+  getPromoCode,
+  activatePromoCode,
   getDailyStats,
   getDailyStatsSummary,
   updateDailyGamesCount,
@@ -815,7 +818,43 @@ app.post('/api/admin/advertisement/:adId/send', async (req, res) => {
   }
 });
 
-// API: Обменять бонусы (нужно пополнить счет на 50% от суммы бонусов)
+// API: Создать промокод для вывода бонусов
+app.post('/api/bonus/create-promo', authMiddleware, async (req, res) => {
+  try {
+    const { bonusesAmount } = req.body;
+
+    if (!bonusesAmount || bonusesAmount <= 0) {
+      return res.status(400).json({ error: 'Invalid bonuses amount' });
+    }
+
+    const { getUserByTelegramId } = require('./database');
+    const user = await getUserByTelegramId(req.user.telegramId);
+    const userStats = await getUserStats(user.id);
+
+    const currentBonuses = userStats.total_bonuses || 0;
+
+    if (currentBonuses < bonusesAmount) {
+      return res.status(400).json({ error: 'Недостаточно бонусов для создания промокода' });
+    }
+
+    // Создаем промокод
+    const promoResult = await createPromoCode(user.id, bonusesAmount);
+
+    res.json({
+      success: true,
+      promoCode: promoResult.code,
+      bonusesAmount: promoResult.bonusesAmount,
+      requiredDeposit: promoResult.requiredDeposit,
+      expiresAt: promoResult.expiresAt,
+      message: `Промокод создан! Покажите его администратору в клубе для получения бонусов.`
+    });
+  } catch (err) {
+    console.error('Create promo code error:', err);
+    res.status(500).json({ error: err.message || 'Failed to create promo code' });
+  }
+});
+
+// API: Обменять бонусы (устаревший, оставлен для совместимости)
 app.post('/api/bonus/exchange', authMiddleware, async (req, res) => {
   try {
     const { bonusesAmount } = req.body;

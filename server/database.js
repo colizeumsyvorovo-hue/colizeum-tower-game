@@ -108,6 +108,21 @@ db.serialize(() => {
     FOREIGN KEY (user_id) REFERENCES users(id)
   )`);
 
+  // Таблица промокодов для вывода бонусов
+  db.run(`CREATE TABLE IF NOT EXISTS promo_codes (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    code TEXT UNIQUE NOT NULL,
+    user_id INTEGER NOT NULL,
+    bonuses_amount INTEGER NOT NULL,
+    required_deposit INTEGER NOT NULL,
+    status TEXT DEFAULT 'pending',
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    expires_at DATETIME,
+    used_at DATETIME,
+    used_by_admin_id INTEGER,
+    FOREIGN KEY (user_id) REFERENCES users(id)
+  )`);
+
   console.log('Database initialized');
 });
 
@@ -826,6 +841,9 @@ module.exports = {
   getUserRank,
   getBonusGameHistory,
   exchangeBonuses,
+  createPromoCode,
+  getPromoCode,
+  activatePromoCode,
   getDailyStats,
   getDailyStatsSummary,
   updateDailyGamesCount,
