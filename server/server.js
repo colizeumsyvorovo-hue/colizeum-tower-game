@@ -405,9 +405,9 @@ app.post('/api/game/save', authMiddleware, async (req, res) => {
     let bonusesEarned = 0;
 
     if (gameType === 'bonus') {
-      // Проверка для игры за бонусы (но попытка уже записана при старте)
+      // Проверка для игры за бонусы (попытка будет записана при завершении игры)
       const bonusInfo = await canPlayBonusGame(user.id);
-      // Если попытка уже записана при старте, это нормально, просто проверяем
+      // Проверяем доступность для логирования
 
       // В игре за бонусы: 1 бонус за обычный блок, 2 за perfect
       const calculatedBonuses = (normalCount * 1) + (perfectCount * 2);
