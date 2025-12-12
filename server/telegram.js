@@ -330,6 +330,24 @@ if (config.telegramBotToken) {
           `Затем нажмите кнопку "✅ Я подписался" еще раз.`,
           {
             parse_mode: 'HTML',
+            reply_markup: {
+              inline_keyboard: [
+                [
+                  {
+                    text: '📢 Подписаться на канал',
+                    url: `https://t.me/${channelUrl}`
+                  }
+                ],
+                [
+                  {
+                    text: '✅ Я подписался',
+                    callback_data: 'check_subscription'
+                  }
+                ]
+              ]
+            }
+          }
+        );
           {
             reply_markup: {
               inline_keyboard: [
