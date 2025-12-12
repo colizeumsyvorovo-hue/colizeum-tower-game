@@ -413,7 +413,14 @@ const canPlayBonusGame = async (userId) => {
       const timeDiff = now.getTime() - lastAttempt.getTime();
       
       // Убеждаемся, что cooldown точно 24 часа (86400000 мс)
-      const cooldownMs = 24 * 60 * 60 * 1000; // Точно 24 часа
+      // ВСЕГДА используем 24 часа, независимо от конфига
+      const cooldownMs = 24 * 60 * 60 * 1000; // Точно 24 часа = 86400000 мс
+      
+      // Проверяем, что config.bonusGameCooldown тоже 24 часа (для логирования)
+      const configCooldown = config.bonusGameCooldown || cooldownMs;
+      if (configCooldown !== cooldownMs) {
+        console.warn(`⚠️ WARNING: config.bonusGameCooldown is not 24 hours! Config: ${configCooldown}ms, Using: ${cooldownMs}ms`);
+      }
       
       console.log(`User ${userId} bonus game check:`, {
         lastAttempt: lastAttempt.toISOString(),
