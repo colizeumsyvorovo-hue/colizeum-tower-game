@@ -14,10 +14,10 @@ async function checkChannelSubscription(userId) {
 
   try {
     let channelIdentifier = config.requiredChannel.replace('@', '');
-    
+
     // Определяем формат канала и пробуем разные варианты
     const channelFormats = [];
-    
+
     // Если это числовой ID (начинается с -100 или просто число)
     if (channelIdentifier.match(/^-?\d+$/)) {
       // Это уже ID канала
@@ -28,23 +28,23 @@ async function checkChannelSubscription(userId) {
       channelFormats.push(channelIdentifier);           // colizeum_kamensk_uralskiy
       channelFormats.push(`@${channelIdentifier}`);     // @colizeum_kamensk_uralskiy
     }
-    
+
     let lastError = null;
-    
+
     // Пробуем каждый формат
     for (const channelId of channelFormats) {
       try {
         const member = await bot.telegram.getChatMember(channelId, userId);
-        
+
         // Статусы, которые считаются подпиской: member, administrator, creator
         const subscribedStatuses = ['member', 'administrator', 'creator'];
         const isSubscribed = subscribedStatuses.includes(member.status);
-        
+
         console.log(`✅ Subscription check for user ${userId} in ${channelId}:`, {
           status: member.status,
           isSubscribed
         });
-        
+
         return isSubscribed;
       } catch (err) {
         lastError = err;
@@ -60,19 +60,19 @@ async function checkChannelSubscription(userId) {
         continue;
       }
     }
-    
+
     // Если все форматы не сработали
     // Логируем ошибку только один раз в минуту для каждого канала (чтобы не спамить логи)
     const errorKey = `channel_error_${config.requiredChannel}`;
     const lastErrorTime = global[errorKey] || 0;
     const now = Date.now();
-    
+
     if (now - lastErrorTime > 60000) { // Логируем раз в минуту
       console.error(`❌ Error checking subscription for user ${userId}: All channel formats failed`, {
         channel: config.requiredChannel,
         lastError: lastError?.response?.description || lastError?.message
       });
-      
+
       // Если ошибка "chat not found" - это значит, что бот не может найти канал
       // Возможные причины: бот не добавлен в канал, неправильное имя канала, канал приватный
       // В этом случае разрешаем доступ, но логируем предупреждение
@@ -83,13 +83,13 @@ async function checkChannelSubscription(userId) {
         console.warn(`   3. Bot has permission to view chat members`);
         console.warn(`   Allowing access for now, but subscription check is disabled.`);
       }
-      
+
       global[errorKey] = now;
     }
-    
+
     // Разрешаем доступ при ошибке (чтобы не блокировать пользователей из-за проблем с конфигурацией)
     return true;
-    
+
     // Для других ошибок также разрешаем доступ (чтобы не блокировать пользователей из-за проблем с API)
     return true;
   } catch (err) {
@@ -117,7 +117,7 @@ if (config.telegramBotToken) {
       // Не пробрасываем ошибку дальше, чтобы не упал процесс
       try {
         if (ctx && ctx.reply) {
-          await ctx.reply('Произошла ошибка. Попробуйте позже или используйте команду /help.').catch(() => {});
+          await ctx.reply('Произошла ошибка. Попробуйте позже или используйте команду /help.').catch(() => { });
         }
       } catch (replyErr) {
         console.error('Error sending error message:', replyErr);
@@ -136,7 +136,7 @@ if (config.telegramBotToken) {
       console.log('[/start] Chat ID:', chatId);
       console.log('[/start] Update ID:', ctx.update?.update_id);
       console.log('[/start] ========================================');
-      
+
       // Проверяем наличие пользователя
       if (!user || !user.id) {
         console.error('[/start] Invalid user data:', user);
@@ -151,18 +151,20 @@ if (config.telegramBotToken) {
         // Если в конфиге ID канала, используем дефолтный username
         let channelDisplay = '@colizeum_kamensk_uralskiy';
         let channelUrl = 'colizeum_kamensk_uralskiy';
-        
+
         // Если в конфиге указан username (не ID), используем его
         if (config.requiredChannel && !config.requiredChannel.match(/^-?\d+$/)) {
-          channelDisplay = config.requiredChannel.startsWith('@') 
-            ? config.requiredChannel 
+          channelDisplay = config.requiredChannel.startsWith('@')
+            ? config.requiredChannel
             : `@${config.requiredChannel}`;
           channelUrl = config.requiredChannel.replace('@', '');
         }
-        
+
+        const channelName = config.requiredChannelName || channelDisplay;
         await ctx.reply(
           `⚠️ <b>Для игры требуется подписка на наш канал!</b>\n\n` +
-          `📢 Подпишитесь на канал: ${channelDisplay}\n\n` +
+          `📢 Подпишитесь на канал: <b>${channelName}</b>\n` +
+          `🔗 ${channelDisplay}\n\n` +
           `После подписки используйте команду /start еще раз.`,
           {
             parse_mode: 'HTML',
@@ -197,21 +199,21 @@ if (config.telegramBotToken) {
         // Продолжаем работу даже если есть проблема с БД (для совместимости)
         dbUser = null;
       }
-      
+
       // Формируем URL игры
       const gameUrl = `${config.frontendUrl}?tgWebAppStartParam=${user.id}`;
       console.log('[/start] Game URL:', gameUrl);
-      
+
       // Проверяем, является ли URL localhost (для разработки)
       const isLocalhost = config.frontendUrl.includes('localhost') || config.frontendUrl.includes('127.0.0.1');
-      
-      const welcomeMessage = 
+
+      const welcomeMessage =
         `❄️ <b>ЗИМНИЙ ПОДЪЁМ</b> ❄️\n\n` +
         `🎯 <b>"Поднимайся выше - собирай больше бонусов!"</b>\n\n` +
         `🎮 <b>Добро пожаловать в Colizeum Tower Game!</b>\n\n` +
         `🚀 Готов начать свой подъём к вершине?\n\n` +
         `Нажмите на кнопку ниже, чтобы начать:`;
-      
+
       if (isLocalhost) {
         // Для localhost просто отправляем текст со ссылкой (без кнопки)
         console.log('[/start] Sending localhost message');
@@ -225,7 +227,7 @@ if (config.telegramBotToken) {
       } else {
         // Для production используем Web App кнопку и дополнительные кнопки
         console.log('[/start] Sending production message with buttons');
-        
+
         // Формируем кнопки правильно для Telegram API
         const inlineKeyboard = [
           [
@@ -267,9 +269,9 @@ if (config.telegramBotToken) {
             }
           ]
         ];
-        
+
         console.log('[/start] Keyboard structure:', JSON.stringify(inlineKeyboard, null, 2));
-        
+
         await ctx.reply(
           welcomeMessage,
           {
@@ -300,29 +302,34 @@ if (config.telegramBotToken) {
   bot.action('check_subscription', async (ctx) => {
     try {
       await ctx.answerCbQuery('Проверяю подписку...');
-      
+
       const userId = ctx.from.id;
       const isSubscribed = await checkChannelSubscription(userId);
-      
+
       if (isSubscribed) {
         await ctx.reply('✅ Отлично! Вы подписаны на канал. Теперь используйте команду /start для начала игры!');
       } else {
         // Формируем правильную ссылку на канал для отображения
         let channelDisplay = '@colizeum_kamensk_uralskiy';
         let channelUrl = 'colizeum_kamensk_uralskiy';
-        
+
         // Если в конфиге указан username (не ID), используем его
         if (config.requiredChannel && !config.requiredChannel.match(/^-?\d+$/)) {
-          channelDisplay = config.requiredChannel.startsWith('@') 
-            ? config.requiredChannel 
+          channelDisplay = config.requiredChannel.startsWith('@')
+            ? config.requiredChannel
             : `@${config.requiredChannel}`;
           channelUrl = config.requiredChannel.replace('@', '');
         }
-        
+
+        const channelName = config.requiredChannelName || channelDisplay;
         await ctx.reply(
           `❌ Вы еще не подписаны на канал.\n\n` +
-          `Пожалуйста, подпишитесь: ${channelDisplay}\n` +
+          `Пожалуйста, подпишитесь на канал:\n` +
+          `📢 <b>${channelName}</b>\n` +
+          `🔗 ${channelDisplay}\n\n` +
           `Затем нажмите кнопку "✅ Я подписался" еще раз.`,
+          {
+            parse_mode: 'HTML',
           {
             reply_markup: {
               inline_keyboard: [
@@ -345,7 +352,7 @@ if (config.telegramBotToken) {
       }
     } catch (err) {
       console.error('Error in check_subscription callback:', err);
-      await ctx.answerCbQuery('Произошла ошибка').catch(() => {});
+      await ctx.answerCbQuery('Произошла ошибка').catch(() => { });
     }
   });
 
@@ -458,7 +465,7 @@ if (config.telegramBotToken) {
       );
     } catch (err) {
       console.error('Error in info_concept callback:', err);
-      await ctx.answerCbQuery('Произошла ошибка').catch(() => {});
+      await ctx.answerCbQuery('Произошла ошибка').catch(() => { });
     }
   });
 
@@ -479,7 +486,7 @@ if (config.telegramBotToken) {
       );
     } catch (err) {
       console.error('Error in info_howtoplay callback:', err);
-      await ctx.answerCbQuery('Произошла ошибка').catch(() => {});
+      await ctx.answerCbQuery('Произошла ошибка').catch(() => { });
     }
   });
 
@@ -502,7 +509,7 @@ if (config.telegramBotToken) {
       );
     } catch (err) {
       console.error('Error in info_bonus_system callback:', err);
-      await ctx.answerCbQuery('Произошла ошибка').catch(() => {});
+      await ctx.answerCbQuery('Произошла ошибка').catch(() => { });
     }
   });
 
@@ -527,7 +534,7 @@ if (config.telegramBotToken) {
       );
     } catch (err) {
       console.error('Error in info_withdrawal callback:', err);
-      await ctx.answerCbQuery('Произошла ошибка').catch(() => {});
+      await ctx.answerCbQuery('Произошла ошибка').catch(() => { });
     }
   });
 
@@ -578,8 +585,8 @@ if (config.telegramBotToken) {
     } catch (err) {
       console.error('Error in show_stats callback:', err);
       try {
-        await ctx.answerCbQuery('Произошла ошибка').catch(() => {});
-        await ctx.reply('Произошла ошибка при получении статистики.').catch(() => {});
+        await ctx.answerCbQuery('Произошла ошибка').catch(() => { });
+        await ctx.reply('Произошла ошибка при получении статистики.').catch(() => { });
       } catch (replyErr) {
         console.error('Error sending error message:', replyErr);
       }
@@ -588,7 +595,7 @@ if (config.telegramBotToken) {
 
   // Административные команды (только для администраторов)
   const ADMIN_IDS = process.env.ADMIN_TELEGRAM_IDS ? process.env.ADMIN_TELEGRAM_IDS.split(',').map(id => parseInt(id.trim())) : [];
-  
+
   const isAdmin = (userId) => {
     return ADMIN_IDS.length === 0 || ADMIN_IDS.includes(userId);
   };
@@ -603,17 +610,17 @@ if (config.telegramBotToken) {
 
       const { getDailyStats, getDailyStatsSummary } = require('./database');
       const date = ctx.message.text.split(' ')[1] || null; // Опциональная дата в формате YYYY-MM-DD
-      
+
       const summary = await getDailyStatsSummary(date);
       const details = await getDailyStats(date);
-      
+
       const dateStr = date || new Date().toISOString().split('T')[0];
-      
+
       let message = `📊 <b>СТАТИСТИКА ЗА ${dateStr}</b>\n\n`;
       message += `👥 <b>Всего пользователей:</b> ${summary.total_users}\n`;
       message += `🎮 <b>Активных игроков:</b> ${summary.active_users}\n`;
       message += `🎯 <b>Всего игр сыграно:</b> ${summary.total_games}\n\n`;
-      
+
       if (details.length > 0) {
         message += `<b>Список пользователей:</b>\n`;
         details.slice(0, 20).forEach((user, index) => {
@@ -624,7 +631,7 @@ if (config.telegramBotToken) {
           message += `\n... и еще ${details.length - 20} пользователей`;
         }
       }
-      
+
       await ctx.reply(message, { parse_mode: 'HTML' });
     } catch (err) {
       console.error('Error in /admin_stats command:', err);
@@ -641,10 +648,10 @@ if (config.telegramBotToken) {
       }
 
       const { getAllTimeStats, getAllUsersWithStats } = require('./database');
-      
+
       const allTimeStats = await getAllTimeStats();
       const topUsers = await getAllUsersWithStats(20, 0);
-      
+
       let message = `📊 <b>ОБЩАЯ СТАТИСТИКА ЗА ВСЕ ВРЕМЯ</b>\n\n`;
       message += `👥 <b>Всего зарегистрировано пользователей:</b> ${allTimeStats.total_users}\n`;
       message += `🎮 <b>Активных игроков:</b> ${allTimeStats.active_users}\n`;
@@ -653,7 +660,7 @@ if (config.telegramBotToken) {
       message += `🏆 <b>Лучший результат:</b> ${allTimeStats.best_score || 0} этажей\n`;
       message += `📈 <b>Новых пользователей за 7 дней:</b> ${allTimeStats.new_users_7d || 0}\n`;
       message += `📈 <b>Новых пользователей за 30 дней:</b> ${allTimeStats.new_users_30d || 0}\n\n`;
-      
+
       if (topUsers.length > 0) {
         message += `<b>Топ-20 активных игроков:</b>\n`;
         topUsers.forEach((user, index) => {
@@ -661,7 +668,7 @@ if (config.telegramBotToken) {
           message += `${index + 1}. ${username} - ${user.total_games || 0} игр, ${user.best_score || 0} этажей, ${user.total_bonuses || 0} бонусов\n`;
         });
       }
-      
+
       await ctx.reply(message, { parse_mode: 'HTML' });
     } catch (err) {
       console.error('Error in /admin_all_stats command:', err);
@@ -699,9 +706,9 @@ if (config.telegramBotToken) {
       const title = args[1];
       const message = args[2];
       const optionsStr = args[3] || 'all';
-      
+
       let options = { targetAllUsers: true, minGames: 0, minBonuses: 0 };
-      
+
       if (optionsStr !== 'all') {
         options.targetAllUsers = false;
         const minGamesMatch = optionsStr.match(/min_games:(\d+)/);
@@ -712,7 +719,7 @@ if (config.telegramBotToken) {
 
       const { createAdvertisement } = require('./database');
       const adId = await createAdvertisement(title, message, options);
-      
+
       await ctx.reply(
         `✅ Реклама создана!\n\n` +
         `ID: ${adId}\n` +
@@ -737,7 +744,7 @@ if (config.telegramBotToken) {
 
       const { getAdvertisements } = require('./database');
       const ads = await getAdvertisements(false);
-      
+
       if (ads.length === 0) {
         await ctx.reply('📢 Рекламных сообщений пока нет.');
         return;
@@ -751,7 +758,7 @@ if (config.telegramBotToken) {
         message += `📅 Создано: ${new Date(ad.created_at).toLocaleDateString('ru-RU')}\n`;
         message += `${ad.is_active ? '✅ Активно' : '❌ Неактивно'}\n\n`;
       });
-      
+
       await ctx.reply(message, { parse_mode: 'HTML' });
     } catch (err) {
       console.error('Error in /admin_ads command:', err);
@@ -776,7 +783,7 @@ if (config.telegramBotToken) {
       await ctx.reply('⏳ Отправка рекламы начата...');
 
       const { getAdvertisement, getTargetUsersForAdvertisement, updateAdvertisementStatus, logAdvertisementSend } = require('./database');
-      
+
       const ad = await getAdvertisement(adId);
       if (!ad) {
         await ctx.reply(`❌ Реклама с ID ${adId} не найдена.`);
@@ -784,7 +791,7 @@ if (config.telegramBotToken) {
       }
 
       const targetUsers = await getTargetUsersForAdvertisement(ad);
-      
+
       if (targetUsers.length === 0) {
         await ctx.reply('❌ Нет пользователей для отправки рекламы.');
         return;
@@ -802,7 +809,7 @@ if (config.telegramBotToken) {
           );
           await logAdvertisementSend(adId, user.id, 'sent');
           sentCount++;
-          
+
           // Задержка чтобы не превысить лимиты Telegram API
           await new Promise(resolve => setTimeout(resolve, 50));
         } catch (err) {
@@ -869,13 +876,13 @@ if (config.telegramBotToken) {
       );
     } catch (err) {
       console.error('Error in show_help callback:', err);
-      await ctx.answerCbQuery('Произошла ошибка').catch(() => {});
+      await ctx.answerCbQuery('Произошла ошибка').catch(() => { });
     }
   });
 
   // Проверяем, используется ли webhook
   const useWebhook = config.telegramWebhookUrl && !config.telegramWebhookUrl.includes('localhost');
-  
+
   if (useWebhook) {
     // Используем webhook для production (webhook будет настроен в server.js)
     console.log('✅ Telegram bot configured for webhook mode');
@@ -904,7 +911,7 @@ if (config.telegramBotToken) {
       console.error('Update ID:', ctx.update.update_id);
       console.error('Update type:', ctx.updateType);
     }
-    
+
     // Пытаемся ответить пользователю об ошибке (безопасно)
     try {
       if (ctx && ctx.reply) {
@@ -915,7 +922,7 @@ if (config.telegramBotToken) {
     } catch (replyErr) {
       console.error('Error in error handler reply:', replyErr);
     }
-    
+
     // Не пробрасываем ошибку дальше, чтобы не упал процесс
   });
 
@@ -939,7 +946,7 @@ if (config.telegramBotToken) {
       }
     }
   };
-  
+
   process.once('SIGINT', () => gracefulStop('SIGINT'));
   process.once('SIGTERM', () => gracefulStop('SIGTERM'));
 } else {

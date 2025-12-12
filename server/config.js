@@ -15,6 +15,7 @@ module.exports = {
     baseBonus: 10,
     maxBonus: 500
   },
-  requiredChannel: 'colizeum_kamensk_uralskiy' // Обязательный канал для подписки (публичный канал @colizeum_kamensk_uralskiy)
+  requiredChannel: 'colizeum_kamensk_uralskiy', // Обязательный канал для подписки (публичный канал @colizeum_kamensk_uralskiy)
+  requiredChannelName: 'COLIZEUM Каменск-Уральский | Киберспортивный клуб' // Название канала для отображения
 };
 
