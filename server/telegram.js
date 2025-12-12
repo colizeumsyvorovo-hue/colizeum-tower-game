@@ -154,12 +154,27 @@ if (config.telegramBotToken) {
         // Это гарантирует, что в сообщении всегда будет правильная ссылка
         const channelDisplay = '@colizeum_kamensk_uralskiy';
         const channelUrl = 'colizeum_kamensk_uralskiy';
-        const channelName = config.requiredChannelName || 'COLIZEUM Каменск-Уральский | Киберспортивный клуб';
+        // Всегда используем хардкодное название, чтобы не зависеть от конфига
+        const channelName = 'COLIZEUM Каменск-Уральский | Киберспортивный клуб';
         const channelLink = `https://t.me/${channelUrl}`;
-        await ctx.reply(
+        
+        console.log(`[/start] Sending subscription message:`, {
+          channelName,
+          channelDisplay,
+          channelUrl,
+          channelLink,
+          configRequiredChannel: config.requiredChannel,
+          configRequiredChannelName: config.requiredChannelName
+        });
+        
+        const messageText = 
           `⚠️ <b>Для игры требуется подписка на наш канал!</b>\n\n` +
           `📢 Подпишитесь на канал: <a href="${channelLink}"><b>${channelName}</b></a>\n\n` +
-          `После подписки используйте команду /start еще раз.`,
+          `После подписки используйте команду /start еще раз.`;
+        
+        console.log(`[/start] Message text:`, messageText);
+        
+        await ctx.reply(messageText,
           {
             parse_mode: 'HTML',
             reply_markup: {
@@ -306,13 +321,17 @@ if (config.telegramBotToken) {
         // Всегда используем правильный username канала для отображения, даже если в конфиге указан ID
         const channelDisplay = '@colizeum_kamensk_uralskiy';
         const channelUrl = 'colizeum_kamensk_uralskiy';
-        const channelName = config.requiredChannelName || 'COLIZEUM Каменск-Уральский | Киберспортивный клуб';
+        // Всегда используем хардкодное название, чтобы не зависеть от конфига
+        const channelName = 'COLIZEUM Каменск-Уральский | Киберспортивный клуб';
         const channelLink = `https://t.me/${channelUrl}`;
-        await ctx.reply(
+        
+        const messageText = 
           `❌ Вы еще не подписаны на канал.\n\n` +
           `Пожалуйста, подпишитесь на канал:\n` +
           `📢 <a href="${channelLink}"><b>${channelName}</b></a>\n\n` +
-          `Затем нажмите кнопку "✅ Я подписался" еще раз.`,
+          `Затем нажмите кнопку "✅ Я подписался" еще раз.`;
+        
+        await ctx.reply(messageText,
           {
             parse_mode: 'HTML',
             reply_markup: {
