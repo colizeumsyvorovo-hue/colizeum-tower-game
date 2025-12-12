@@ -132,14 +132,18 @@ app.post('/api/auth/telegram', async (req, res) => {
         if (userMatch) {
           telegramUser = JSON.parse(decodeURIComponent(userMatch[1]));
         } else {
-          // Создаем демо пользователя из start param
+          // Создаем демо пользователя из start param (только если нет других данных)
           const demoMatch = initData.match(/id%22%3A(\d+)/);
           if (demoMatch) {
+            // Пытаемся получить имя из базы данных, если пользователь уже существует
+            const { getUserByTelegramId } = require('./database');
+            const existingUser = await getUserByTelegramId(parseInt(demoMatch[1]));
             telegramUser = {
               id: parseInt(demoMatch[1]),
-              first_name: 'Demo',
-              username: null
+              first_name: existingUser?.first_name || 'Игрок',
+              username: existingUser?.username || null
             };
+            console.log('⚠️ Using fallback user data (demo mode), but trying to use existing name:', telegramUser.first_name);
           } else {
             throw new Error('Cannot parse user data');
           }
@@ -150,11 +154,15 @@ app.post('/api/auth/telegram', async (req, res) => {
       // Попытка создать демо пользователя
       const demoMatch = initData.match(/id%22%3A(\d+)/);
       if (demoMatch) {
+        // Пытаемся получить имя из базы данных, если пользователь уже существует
+        const { getUserByTelegramId } = require('./database');
+        const existingUser = await getUserByTelegramId(parseInt(demoMatch[1]));
         telegramUser = {
           id: parseInt(demoMatch[1]),
-          first_name: 'Demo',
-          username: null
+          first_name: existingUser?.first_name || 'Игрок',
+          username: existingUser?.username || null
         };
+        console.log('⚠️ Using fallback user data (error case), but trying to use existing name:', telegramUser.first_name);
       } else {
         return res.status(400).json({ error: 'Invalid user data format' });
       }
