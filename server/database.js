@@ -150,10 +150,20 @@ const getOrCreateUser = async (telegramUser) => {
     }
   } else {
     // Обновляем username и first_name, если они изменились
-    if (telegramUser.username !== user.username || telegramUser.first_name !== user.first_name) {
+    // НО НЕ перезаписываем реальное имя на "Demo" или "Игрок"
+    const shouldUpdateName = telegramUser.first_name && 
+                             telegramUser.first_name !== user.first_name &&
+                             telegramUser.first_name !== 'Demo' && 
+                             telegramUser.first_name !== 'Игрок';
+    const shouldUpdateUsername = telegramUser.username && telegramUser.username !== user.username;
+    
+    if (shouldUpdateName || shouldUpdateUsername) {
+      const newFirstName = shouldUpdateName ? telegramUser.first_name : user.first_name;
+      const newUsername = shouldUpdateUsername ? telegramUser.username : (telegramUser.username || user.username);
+      
       db.run(
         'UPDATE users SET username = ?, first_name = ? WHERE id = ?',
-        [telegramUser.username || null, telegramUser.first_name || null, user.id],
+        [newUsername || null, newFirstName || null, user.id],
         (err) => {
           if (err) {
             console.error('Error updating user info:', err);
