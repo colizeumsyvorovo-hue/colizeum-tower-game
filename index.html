@@ -2474,10 +2474,18 @@
 
             // Если это игра за бонусы, обновляем статус доступности ПОСЛЕ показа модального окна
             if (currentGameType === 'bonus') {
+              console.log('🎮 [BONUS GAME] Game completed, updating bonus game status...');
               // Небольшая задержка, чтобы модальное окно успело показаться
               setTimeout(() => {
-                updateBonusGameStatus();
-              }, 500);
+                console.log('🎮 [BONUS GAME] Calling updateBonusGameStatus() after game completion');
+                // Сбрасываем старое время, чтобы получить новое из API
+                bonusNextAvailableTime = null;
+                updateBonusGameStatus().then(() => {
+                  console.log('🎮 [BONUS GAME] Bonus game status updated after completion');
+                  // Запускаем таймер заново
+                  startBonusCountdown();
+                });
+              }, 1000); // Увеличиваем задержку до 1 секунды, чтобы сервер успел обновить last_attempt
             }
           } else {
             const errorData = await response.json().catch(() => ({}));
