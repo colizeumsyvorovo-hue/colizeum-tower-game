@@ -135,15 +135,36 @@ app.post('/api/auth/telegram', async (req, res) => {
           // Создаем демо пользователя из start param (только если нет других данных)
           const demoMatch = initData.match(/id%22%3A(\d+)/);
           if (demoMatch) {
+            const telegramId = parseInt(demoMatch[1]);
             // Пытаемся получить имя из базы данных, если пользователь уже существует
             const { getUserByTelegramId } = require('./database');
-            const existingUser = await getUserByTelegramId(parseInt(demoMatch[1]));
+            let existingUser = await getUserByTelegramId(telegramId);
+            
+            // Если пользователя нет в базе, пытаемся получить данные из Telegram Bot API
+            if (!existingUser || !existingUser.first_name || existingUser.first_name === 'Игрок' || existingUser.first_name === 'Demo') {
+              try {
+                const { bot } = require('./telegram');
+                if (bot) {
+                  const chatMember = await bot.telegram.getChatMember(telegramId, telegramId);
+                  if (chatMember && chatMember.user) {
+                    existingUser = {
+                      first_name: chatMember.user.first_name,
+                      username: chatMember.user.username
+                    };
+                    console.log('✅ Got user data from Telegram Bot API:', existingUser.first_name);
+                  }
+                }
+              } catch (apiErr) {
+                console.log('⚠️ Could not get user data from Telegram Bot API:', apiErr.message);
+              }
+            }
+            
             telegramUser = {
-              id: parseInt(demoMatch[1]),
-              first_name: existingUser?.first_name || 'Игрок',
+              id: telegramId,
+              first_name: existingUser?.first_name || null,
               username: existingUser?.username || null
             };
-            console.log('⚠️ Using fallback user data (demo mode), but trying to use existing name:', telegramUser.first_name);
+            console.log('⚠️ Using fallback user data (demo mode), name:', telegramUser.first_name || 'NOT SET');
           } else {
             throw new Error('Cannot parse user data');
           }
@@ -154,15 +175,36 @@ app.post('/api/auth/telegram', async (req, res) => {
       // Попытка создать демо пользователя
       const demoMatch = initData.match(/id%22%3A(\d+)/);
       if (demoMatch) {
+        const telegramId = parseInt(demoMatch[1]);
         // Пытаемся получить имя из базы данных, если пользователь уже существует
         const { getUserByTelegramId } = require('./database');
-        const existingUser = await getUserByTelegramId(parseInt(demoMatch[1]));
+        let existingUser = await getUserByTelegramId(telegramId);
+        
+        // Если пользователя нет в базе, пытаемся получить данные из Telegram Bot API
+        if (!existingUser || !existingUser.first_name || existingUser.first_name === 'Игрок' || existingUser.first_name === 'Demo') {
+          try {
+            const { bot } = require('./telegram');
+            if (bot) {
+              const chatMember = await bot.telegram.getChatMember(telegramId, telegramId);
+              if (chatMember && chatMember.user) {
+                existingUser = {
+                  first_name: chatMember.user.first_name,
+                  username: chatMember.user.username
+                };
+                console.log('✅ Got user data from Telegram Bot API (error case):', existingUser.first_name);
+              }
+            }
+          } catch (apiErr) {
+            console.log('⚠️ Could not get user data from Telegram Bot API (error case):', apiErr.message);
+          }
+        }
+        
         telegramUser = {
-          id: parseInt(demoMatch[1]),
-          first_name: existingUser?.first_name || 'Игрок',
+          id: telegramId,
+          first_name: existingUser?.first_name || null,
           username: existingUser?.username || null
         };
-        console.log('⚠️ Using fallback user data (error case), but trying to use existing name:', telegramUser.first_name);
+        console.log('⚠️ Using fallback user data (error case), name:', telegramUser.first_name || 'NOT SET');
       } else {
         return res.status(400).json({ error: 'Invalid user data format' });
       }

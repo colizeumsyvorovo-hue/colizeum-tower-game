@@ -123,12 +123,21 @@ const getUserByTelegramId = (telegramId) => {
 
 const createUser = (telegramUser) => {
   return new Promise((resolve, reject) => {
+    // Не создаем пользователя без имени (или с placeholder именем)
+    if (!telegramUser.first_name || telegramUser.first_name === 'Игрок' || telegramUser.first_name === 'Demo') {
+      console.warn(`⚠️ Attempting to create user ${telegramUser.id} without valid name:`, telegramUser.first_name);
+      // Все равно создаем, но логируем предупреждение
+    }
+    
     db.run(
       'INSERT INTO users (telegram_id, username, first_name, last_name) VALUES (?, ?, ?, ?)',
       [telegramUser.id, telegramUser.username || null, telegramUser.first_name || null, telegramUser.last_name || null],
       function (err) {
         if (err) reject(err);
-        else resolve(this.lastID);
+        else {
+          console.log(`✅ Created user ${telegramUser.id} with name: ${telegramUser.first_name || 'NULL'}`);
+          resolve(this.lastID);
+        }
       }
     );
   });
