@@ -355,14 +355,10 @@ app.post('/api/game/bonus/start', authMiddleware, async (req, res) => {
       return res.status(403).json({ error: 'Bonus game not available yet', nextAvailable: bonusInfo.nextAvailable });
     }
 
-    // Записываем попытку сразу при старте игры
-    try {
-      await recordBonusAttempt(user.id);
-      console.log('[/api/game/bonus/start] Bonus attempt recorded for user:', user.id);
-    } catch (recordErr) {
-      console.error('[/api/game/bonus/start] Error recording bonus attempt:', recordErr);
-      return res.status(500).json({ error: 'Failed to record bonus attempt', details: recordErr.message });
-    }
+    // НЕ записываем попытку при старте - будем записывать при завершении игры
+    // Это позволит игрокам играть, даже если они начали игру, но не завершили её
+    // Отсчет 24 часов начнется только после завершения игры
+    console.log('[/api/game/bonus/start] Bonus game started - attempt will be recorded on game completion');
 
     console.log('[/api/game/bonus/start] Bonus game started successfully for user:', user.id);
     res.json({ success: true, message: 'Bonus game started' });
