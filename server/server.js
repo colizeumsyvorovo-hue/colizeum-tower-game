@@ -454,7 +454,9 @@ app.post('/api/game/save', authMiddleware, async (req, res) => {
 
     // Для игры за бонусы обновляем last_attempt при завершении игры (а не при старте)
     // Это означает, что отсчет 24 часов начинается с момента завершения игры
+    console.log(`🔍 [GAME SAVE] Checking gameType: "${gameType}", is bonus: ${gameType === 'bonus'}`);
     if (gameType === 'bonus') {
+      console.log(`🎮 [BONUS GAME] Starting last_attempt update for user ${user.id}`);
       const { recordBonusAttempt, canPlayBonusGame } = require('./database');
       
       // Получаем старое время перед обновлением
