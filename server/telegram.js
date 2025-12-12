@@ -303,19 +303,10 @@ if (config.telegramBotToken) {
       if (isSubscribed) {
         await ctx.reply('✅ Отлично! Вы подписаны на канал. Теперь используйте команду /start для начала игры!');
       } else {
-        // Формируем правильную ссылку на канал для отображения
-        let channelDisplay = '@colizeum_kamensk_uralskiy';
-        let channelUrl = 'colizeum_kamensk_uralskiy';
-
-        // Если в конфиге указан username (не ID), используем его
-        if (config.requiredChannel && !config.requiredChannel.match(/^-?\d+$/)) {
-          channelDisplay = config.requiredChannel.startsWith('@')
-            ? config.requiredChannel
-            : `@${config.requiredChannel}`;
-          channelUrl = config.requiredChannel.replace('@', '');
-        }
-
-        const channelName = config.requiredChannelName || channelDisplay;
+        // Всегда используем правильный username канала для отображения, даже если в конфиге указан ID
+        const channelDisplay = '@colizeum_kamensk_uralskiy';
+        const channelUrl = 'colizeum_kamensk_uralskiy';
+        const channelName = config.requiredChannelName || 'COLIZEUM Каменск-Уральский | Киберспортивный клуб';
         const channelLink = `https://t.me/${channelUrl}`;
         await ctx.reply(
           `❌ Вы еще не подписаны на канал.\n\n` +
