@@ -150,20 +150,11 @@ if (config.telegramBotToken) {
       console.log(`[/start] Subscription check result for user ${user.id}:`, isSubscribed);
       if (!isSubscribed) {
         console.log(`[/start] User ${user.id} is not subscribed, showing subscription message`);
-        // Формируем правильную ссылку на канал для отображения
-        // Если в конфиге ID канала, используем дефолтный username
-        let channelDisplay = '@colizeum_kamensk_uralskiy';
-        let channelUrl = 'colizeum_kamensk_uralskiy';
-
-        // Если в конфиге указан username (не ID), используем его
-        if (config.requiredChannel && !config.requiredChannel.match(/^-?\d+$/)) {
-          channelDisplay = config.requiredChannel.startsWith('@')
-            ? config.requiredChannel
-            : `@${config.requiredChannel}`;
-          channelUrl = config.requiredChannel.replace('@', '');
-        }
-
-        const channelName = config.requiredChannelName || channelDisplay;
+        // Всегда используем правильный username канала для отображения, даже если в конфиге указан ID
+        // Это гарантирует, что в сообщении всегда будет правильная ссылка
+        const channelDisplay = '@colizeum_kamensk_uralskiy';
+        const channelUrl = 'colizeum_kamensk_uralskiy';
+        const channelName = config.requiredChannelName || 'COLIZEUM Каменск-Уральский | Киберспортивный клуб';
         const channelLink = `https://t.me/${channelUrl}`;
         await ctx.reply(
           `⚠️ <b>Для игры требуется подписка на наш канал!</b>\n\n` +
