@@ -503,6 +503,174 @@ const recordBonusAttempt = (userId) => {
   });
 };
 
+// Генерация уникального промокода
+const generatePromoCode = () => {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // Исключаем похожие символы (0, O, I, 1)
+  let code = '';
+  for (let i = 0; i < 8; i++) {
+    code += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return code;
+};
+
+// Создание промокода для вывода бонусов
+const createPromoCode = (userId, bonusesAmount) => {
+  return new Promise((resolve, reject) => {
+    db.serialize(() => {
+      db.get('SELECT total_bonuses FROM users WHERE id = ?', [userId], (err, user) => {
+        if (err) {
+          reject(err);
+          return;
+        }
+        
+        if (!user) {
+          reject(new Error('User not found'));
+          return;
+        }
+        
+        const currentBonuses = user.total_bonuses || 0;
+        
+        if (currentBonuses < bonusesAmount) {
+          reject(new Error('Not enough bonuses'));
+          return;
+        }
+        
+        // Генерируем уникальный промокод
+        let code = generatePromoCode();
+        let attempts = 0;
+        const maxAttempts = 10;
+        
+        const tryInsert = () => {
+          // Рассчитываем требуемую сумму пополнения (50% от суммы бонусов)
+          const requiredAmount = Math.round(bonusesAmount * 0.5);
+          
+          // Срок действия промокода - 7 дней
+          const expiresAt = new Date();
+          expiresAt.setDate(expiresAt.getDate() + 7);
+          
+          db.run(
+            `INSERT INTO promo_codes (code, user_id, bonuses_amount, required_deposit, expires_at) 
+             VALUES (?, ?, ?, ?, ?)`,
+            [code, userId, bonusesAmount, requiredAmount, expiresAt.toISOString()],
+            function(insertErr) {
+              if (insertErr) {
+                if (insertErr.code === 'SQLITE_CONSTRAINT' && attempts < maxAttempts) {
+                  // Промокод уже существует, генерируем новый
+                  code = generatePromoCode();
+                  attempts++;
+                  tryInsert();
+                } else {
+                  reject(insertErr);
+                }
+              } else {
+                console.log(`✅ Promo code created: ${code} for user ${userId}, bonuses: ${bonusesAmount}, deposit: ${requiredAmount}`);
+                resolve({
+                  code: code,
+                  bonusesAmount: bonusesAmount,
+                  requiredDeposit: requiredAmount,
+                  expiresAt: expiresAt.toISOString()
+                });
+              }
+            }
+          );
+        };
+        
+        tryInsert();
+      });
+    });
+  });
+};
+
+// Получить промокод по коду
+const getPromoCode = (code) => {
+  return new Promise((resolve, reject) => {
+    db.get(
+      `SELECT pc.*, u.telegram_id, u.first_name, u.username 
+       FROM promo_codes pc 
+       JOIN users u ON pc.user_id = u.id 
+       WHERE pc.code = ?`,
+      [code.toUpperCase()],
+      (err, row) => {
+        if (err) reject(err);
+        else resolve(row);
+      }
+    );
+  });
+};
+
+// Активировать промокод (использовать)
+const activatePromoCode = (code, adminId) => {
+  return new Promise((resolve, reject) => {
+    db.serialize(() => {
+      db.get('SELECT * FROM promo_codes WHERE code = ?', [code.toUpperCase()], (err, promo) => {
+        if (err) {
+          reject(err);
+          return;
+        }
+        
+        if (!promo) {
+          reject(new Error('Promo code not found'));
+          return;
+        }
+        
+        if (promo.status === 'used') {
+          reject(new Error('Promo code already used'));
+          return;
+        }
+        
+        if (promo.status === 'expired') {
+          reject(new Error('Promo code expired'));
+          return;
+        }
+        
+        const expiresAt = new Date(promo.expires_at);
+        if (expiresAt < new Date()) {
+          // Промокод истек
+          db.run(
+            'UPDATE promo_codes SET status = ? WHERE code = ?',
+            ['expired', code.toUpperCase()],
+            () => {}
+          );
+          reject(new Error('Promo code expired'));
+          return;
+        }
+        
+        // Обнуляем бонусы пользователя
+        db.run(
+          'UPDATE users SET total_bonuses = 0 WHERE id = ?',
+          [promo.user_id],
+          (updateErr) => {
+            if (updateErr) {
+              reject(updateErr);
+              return;
+            }
+            
+            // Помечаем промокод как использованный
+            db.run(
+              'UPDATE promo_codes SET status = ?, used_at = CURRENT_TIMESTAMP, used_by_admin_id = ? WHERE code = ?',
+              ['used', adminId || null, code.toUpperCase()],
+              (markErr) => {
+                if (markErr) {
+                  reject(markErr);
+                  return;
+                }
+                
+                console.log(`✅ Promo code ${code} activated by admin ${adminId || 'unknown'}`);
+                resolve({
+                  code: promo.code,
+                  bonusesAmount: promo.bonuses_amount,
+                  requiredDeposit: promo.required_deposit,
+                  userId: promo.user_id
+                });
+              }
+            );
+          }
+        );
+      });
+    });
+  });
+};
+
 // Получить статистику пользователя
 const getUserStats = (userId) => {
   return new Promise((resolve, reject) => {
