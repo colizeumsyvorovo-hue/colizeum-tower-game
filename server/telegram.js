@@ -147,10 +147,22 @@ if (config.telegramBotToken) {
       // Проверяем подписку на канал
       const isSubscribed = await checkChannelSubscription(user.id);
       if (!isSubscribed) {
-        const channelLink = config.requiredChannel || '@colizeum_kamensk_uralskiy';
+        // Формируем правильную ссылку на канал для отображения
+        // Если в конфиге ID канала, используем дефолтный username
+        let channelDisplay = '@colizeum_kamensk_uralskiy';
+        let channelUrl = 'colizeum_kamensk_uralskiy';
+        
+        // Если в конфиге указан username (не ID), используем его
+        if (config.requiredChannel && !config.requiredChannel.match(/^-?\d+$/)) {
+          channelDisplay = config.requiredChannel.startsWith('@') 
+            ? config.requiredChannel 
+            : `@${config.requiredChannel}`;
+          channelUrl = config.requiredChannel.replace('@', '');
+        }
+        
         await ctx.reply(
           `⚠️ <b>Для игры требуется подписка на наш канал!</b>\n\n` +
-          `📢 Подпишитесь на канал: ${channelLink}\n\n` +
+          `📢 Подпишитесь на канал: ${channelDisplay}\n\n` +
           `После подписки используйте команду /start еще раз.`,
           {
             parse_mode: 'HTML',
@@ -159,7 +171,7 @@ if (config.telegramBotToken) {
                 [
                   {
                     text: '📢 Подписаться на канал',
-                    url: `https://t.me/${channelLink.replace('@', '')}`
+                    url: `https://t.me/${channelUrl}`
                   }
                 ],
                 [
@@ -295,10 +307,21 @@ if (config.telegramBotToken) {
       if (isSubscribed) {
         await ctx.reply('✅ Отлично! Вы подписаны на канал. Теперь используйте команду /start для начала игры!');
       } else {
-        const channelLink = config.requiredChannel || '@colizeum_kamensk_uralskiy';
+        // Формируем правильную ссылку на канал для отображения
+        let channelDisplay = '@colizeum_kamensk_uralskiy';
+        let channelUrl = 'colizeum_kamensk_uralskiy';
+        
+        // Если в конфиге указан username (не ID), используем его
+        if (config.requiredChannel && !config.requiredChannel.match(/^-?\d+$/)) {
+          channelDisplay = config.requiredChannel.startsWith('@') 
+            ? config.requiredChannel 
+            : `@${config.requiredChannel}`;
+          channelUrl = config.requiredChannel.replace('@', '');
+        }
+        
         await ctx.reply(
           `❌ Вы еще не подписаны на канал.\n\n` +
-          `Пожалуйста, подпишитесь: ${channelLink}\n` +
+          `Пожалуйста, подпишитесь: ${channelDisplay}\n` +
           `Затем нажмите кнопку "✅ Я подписался" еще раз.`,
           {
             reply_markup: {
@@ -306,7 +329,7 @@ if (config.telegramBotToken) {
                 [
                   {
                     text: '📢 Подписаться на канал',
-                    url: `https://t.me/${channelLink.replace('@', '')}`
+                    url: `https://t.me/${channelUrl}`
                   }
                 ],
                 [
