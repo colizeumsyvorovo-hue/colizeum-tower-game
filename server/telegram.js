@@ -348,25 +348,6 @@ if (config.telegramBotToken) {
             }
           }
         );
-          {
-            reply_markup: {
-              inline_keyboard: [
-                [
-                  {
-                    text: '📢 Подписаться на канал',
-                    url: `https://t.me/${channelUrl}`
-                  }
-                ],
-                [
-                  {
-                    text: '✅ Я подписался',
-                    callback_data: 'check_subscription'
-                  }
-                ]
-              ]
-            }
-          }
-        );
       }
     } catch (err) {
       console.error('Error in check_subscription callback:', err);
