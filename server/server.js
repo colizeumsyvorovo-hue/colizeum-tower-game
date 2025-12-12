@@ -138,33 +138,25 @@ app.post('/api/auth/telegram', async (req, res) => {
             const telegramId = parseInt(demoMatch[1]);
             // Пытаемся получить имя из базы данных, если пользователь уже существует
             const { getUserByTelegramId } = require('./database');
-            let existingUser = await getUserByTelegramId(telegramId);
+            const existingUser = await getUserByTelegramId(telegramId);
             
-            // Если пользователя нет в базе, пытаемся получить данные из Telegram Bot API
-            if (!existingUser || !existingUser.first_name || existingUser.first_name === 'Игрок' || existingUser.first_name === 'Demo') {
-              try {
-                const { bot } = require('./telegram');
-                if (bot) {
-                  const chatMember = await bot.telegram.getChatMember(telegramId, telegramId);
-                  if (chatMember && chatMember.user) {
-                    existingUser = {
-                      first_name: chatMember.user.first_name,
-                      username: chatMember.user.username
-                    };
-                    console.log('✅ Got user data from Telegram Bot API:', existingUser.first_name);
-                  }
-                }
-              } catch (apiErr) {
-                console.log('⚠️ Could not get user data from Telegram Bot API:', apiErr.message);
-              }
+            // Если в базе есть реальное имя (не placeholder), используем его
+            if (existingUser && existingUser.first_name && existingUser.first_name !== 'Игрок' && existingUser.first_name !== 'Demo') {
+              telegramUser = {
+                id: telegramId,
+                first_name: existingUser.first_name,
+                username: existingUser.username || null
+              };
+              console.log('✅ Using existing user name from database:', telegramUser.first_name);
+            } else {
+              // Если имени нет или это placeholder, оставляем null - имя будет получено при следующем входе через бота
+              telegramUser = {
+                id: telegramId,
+                first_name: null,
+                username: existingUser?.username || null
+              };
+              console.log('⚠️ No valid name found, will be set when user uses /start command in bot');
             }
-            
-            telegramUser = {
-              id: telegramId,
-              first_name: existingUser?.first_name || null,
-              username: existingUser?.username || null
-            };
-            console.log('⚠️ Using fallback user data (demo mode), name:', telegramUser.first_name || 'NOT SET');
           } else {
             throw new Error('Cannot parse user data');
           }
@@ -178,33 +170,25 @@ app.post('/api/auth/telegram', async (req, res) => {
         const telegramId = parseInt(demoMatch[1]);
         // Пытаемся получить имя из базы данных, если пользователь уже существует
         const { getUserByTelegramId } = require('./database');
-        let existingUser = await getUserByTelegramId(telegramId);
+        const existingUser = await getUserByTelegramId(telegramId);
         
-        // Если пользователя нет в базе, пытаемся получить данные из Telegram Bot API
-        if (!existingUser || !existingUser.first_name || existingUser.first_name === 'Игрок' || existingUser.first_name === 'Demo') {
-          try {
-            const { bot } = require('./telegram');
-            if (bot) {
-              const chatMember = await bot.telegram.getChatMember(telegramId, telegramId);
-              if (chatMember && chatMember.user) {
-                existingUser = {
-                  first_name: chatMember.user.first_name,
-                  username: chatMember.user.username
-                };
-                console.log('✅ Got user data from Telegram Bot API (error case):', existingUser.first_name);
-              }
-            }
-          } catch (apiErr) {
-            console.log('⚠️ Could not get user data from Telegram Bot API (error case):', apiErr.message);
-          }
+        // Если в базе есть реальное имя (не placeholder), используем его
+        if (existingUser && existingUser.first_name && existingUser.first_name !== 'Игрок' && existingUser.first_name !== 'Demo') {
+          telegramUser = {
+            id: telegramId,
+            first_name: existingUser.first_name,
+            username: existingUser.username || null
+          };
+          console.log('✅ Using existing user name from database (error case):', telegramUser.first_name);
+        } else {
+          // Если имени нет или это placeholder, оставляем null - имя будет получено при следующем входе через бота
+          telegramUser = {
+            id: telegramId,
+            first_name: null,
+            username: existingUser?.username || null
+          };
+          console.log('⚠️ No valid name found (error case), will be set when user uses /start command in bot');
         }
-        
-        telegramUser = {
-          id: telegramId,
-          first_name: existingUser?.first_name || null,
-          username: existingUser?.username || null
-        };
-        console.log('⚠️ Using fallback user data (error case), name:', telegramUser.first_name || 'NOT SET');
       } else {
         return res.status(400).json({ error: 'Invalid user data format' });
       }
