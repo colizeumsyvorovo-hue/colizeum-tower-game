@@ -325,11 +325,11 @@ if (config.telegramBotToken) {
         }
 
         const channelName = config.requiredChannelName || channelDisplay;
-        const channelUrl = `https://t.me/${channelUrl}`;
+        const channelLink = `https://t.me/${channelUrl}`;
         await ctx.reply(
           `❌ Вы еще не подписаны на канал.\n\n` +
           `Пожалуйста, подпишитесь на канал:\n` +
-          `📢 <a href="${channelUrl}"><b>${channelName}</b></a>\n\n` +
+          `📢 <a href="${channelLink}"><b>${channelName}</b></a>\n\n` +
           `Затем нажмите кнопку "✅ Я подписался" еще раз.`,
           {
             parse_mode: 'HTML',
