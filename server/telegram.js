@@ -75,23 +75,24 @@ async function checkChannelSubscription(userId) {
 
       // Если ошибка "chat not found" - это значит, что бот не может найти канал
       // Возможные причины: бот не добавлен в канал, неправильное имя канала, канал приватный
-      // В этом случае разрешаем доступ, но логируем предупреждение
       if (lastError?.response?.error_code === 400 && lastError?.response?.description?.includes('chat not found')) {
         console.warn(`⚠️ WARNING: Bot cannot access channel ${config.requiredChannel}. Make sure:`);
         console.warn(`   1. Bot is added to the channel as administrator`);
         console.warn(`   2. Channel username/ID is correct: ${config.requiredChannel}`);
         console.warn(`   3. Bot has permission to view chat members`);
-        console.warn(`   Allowing access for now, but subscription check is disabled.`);
+        console.warn(`   Returning false to show subscription message.`);
+        global[errorKey] = now;
+        // Возвращаем false, чтобы показать сообщение о подписке
+        // Это заставит пользователя подписаться, даже если бот не может проверить
+        return false;
       }
 
       global[errorKey] = now;
     }
 
-    // Разрешаем доступ при ошибке (чтобы не блокировать пользователей из-за проблем с конфигурацией)
-    return true;
-
-    // Для других ошибок также разрешаем доступ (чтобы не блокировать пользователей из-за проблем с API)
-    return true;
+    // Для других ошибок возвращаем false, чтобы показать сообщение о подписке
+    // Это безопаснее, чем разрешать доступ без проверки
+    return false;
   } catch (err) {
     console.error(`❌ Unexpected error checking subscription for user ${userId}:`, err);
     // При неожиданной ошибке разрешаем доступ
@@ -146,7 +147,9 @@ if (config.telegramBotToken) {
 
       // Проверяем подписку на канал
       const isSubscribed = await checkChannelSubscription(user.id);
+      console.log(`[/start] Subscription check result for user ${user.id}:`, isSubscribed);
       if (!isSubscribed) {
+        console.log(`[/start] User ${user.id} is not subscribed, showing subscription message`);
         // Формируем правильную ссылку на канал для отображения
         // Если в конфиге ID канала, используем дефолтный username
         let channelDisplay = '@colizeum_kamensk_uralskiy';
