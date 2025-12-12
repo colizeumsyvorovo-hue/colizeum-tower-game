@@ -160,28 +160,35 @@ const getOrCreateUser = async (telegramUser) => {
   } else {
     // Обновляем username и first_name, если они изменились
     // НО НЕ перезаписываем реальное имя на "Demo" или "Игрок"
+    // И обновляем имя, если текущее имя - placeholder (null, 'Игрок', 'Demo')
+    const currentNameIsPlaceholder = !user.first_name || user.first_name === 'Игрок' || user.first_name === 'Demo';
     const shouldUpdateName = telegramUser.first_name && 
-                             telegramUser.first_name !== user.first_name &&
                              telegramUser.first_name !== 'Demo' && 
-                             telegramUser.first_name !== 'Игрок';
+                             telegramUser.first_name !== 'Игрок' &&
+                             (currentNameIsPlaceholder || telegramUser.first_name !== user.first_name);
     const shouldUpdateUsername = telegramUser.username && telegramUser.username !== user.username;
     
     if (shouldUpdateName || shouldUpdateUsername) {
       const newFirstName = shouldUpdateName ? telegramUser.first_name : user.first_name;
       const newUsername = shouldUpdateUsername ? telegramUser.username : (telegramUser.username || user.username);
       
-      db.run(
-        'UPDATE users SET username = ?, first_name = ? WHERE id = ?',
-        [newUsername || null, newFirstName || null, user.id],
-        (err) => {
-          if (err) {
-            console.error('Error updating user info:', err);
-          } else {
-            user.username = telegramUser.username || user.username;
-            user.first_name = telegramUser.first_name || user.first_name;
+      return new Promise((resolve, reject) => {
+        db.run(
+          'UPDATE users SET username = ?, first_name = ? WHERE id = ?',
+          [newUsername || null, newFirstName || null, user.id],
+          (err) => {
+            if (err) {
+              console.error('Error updating user info:', err);
+              resolve(user);
+            } else {
+              console.log(`✅ Updated user ${user.id} info: first_name=${newFirstName}, username=${newUsername || 'null'}`);
+              user.username = newUsername || user.username;
+              user.first_name = newFirstName || user.first_name;
+              resolve(user);
+            }
           }
-        }
-      );
+        );
+      });
     }
   }
   
