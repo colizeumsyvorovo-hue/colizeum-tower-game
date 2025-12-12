@@ -455,12 +455,26 @@ app.post('/api/game/save', authMiddleware, async (req, res) => {
     // Для игры за бонусы обновляем last_attempt при завершении игры (а не при старте)
     // Это означает, что отсчет 24 часов начинается с момента завершения игры
     if (gameType === 'bonus') {
-      const { recordBonusAttempt } = require('./database');
+      const { recordBonusAttempt, canPlayBonusGame } = require('./database');
+      
+      // Получаем старое время перед обновлением
+      const oldBonusInfo = await canPlayBonusGame(user.id);
+      const oldLastAttempt = oldBonusInfo.nextAvailable ? new Date(oldBonusInfo.nextAvailable).getTime() - (24 * 60 * 60 * 1000) : null;
+      console.log(`🕐 [BONUS GAME COMPLETION] Before update - old last_attempt:`, oldLastAttempt ? new Date(oldLastAttempt).toISOString() : 'none');
+      
       try {
         await recordBonusAttempt(user.id);
-        console.log(`✅ Bonus attempt time updated for user ${user.id} after game completion`);
+        const now = new Date();
+        console.log(`✅ [BONUS GAME COMPLETION] Bonus attempt time updated for user ${user.id} at ${now.toISOString()}`);
+        
+        // Проверяем новое время после обновления
+        const newBonusInfo = await canPlayBonusGame(user.id);
+        console.log(`🕐 [BONUS GAME COMPLETION] After update - new bonus info:`, {
+          canPlay: newBonusInfo.canPlay,
+          nextAvailable: newBonusInfo.nextAvailable ? new Date(newBonusInfo.nextAvailable).toISOString() : null
+        });
       } catch (recordErr) {
-        console.error(`❌ Error updating bonus attempt time:`, recordErr);
+        console.error(`❌ [BONUS GAME COMPLETION] Error updating bonus attempt time:`, recordErr);
         // Не блокируем сохранение игры из-за ошибки обновления времени
       }
     }
