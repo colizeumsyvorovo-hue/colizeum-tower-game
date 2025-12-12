@@ -152,27 +152,28 @@ if (config.telegramBotToken) {
         console.log(`[/start] User ${user.id} is not subscribed, showing subscription message`);
         // Всегда используем правильный username канала для отображения, даже если в конфиге указан ID
         // Это гарантирует, что в сообщении всегда будет правильная ссылка
+        const channelUsername = 'colizeum_kamensk_uralskiy'; // Всегда используем правильный username
         const channelDisplay = '@colizeum_kamensk_uralskiy';
-        const channelUrl = 'colizeum_kamensk_uralskiy';
+        const channelUrl = `https://t.me/${channelUsername}`;
         // Всегда используем хардкодное название, чтобы не зависеть от конфига
         const channelName = 'COLIZEUM Каменск-Уральский | Киберспортивный клуб';
-        const channelLink = `https://t.me/${channelUrl}`;
         
         console.log(`[/start] Sending subscription message:`, {
           channelName,
           channelDisplay,
+          channelUsername,
           channelUrl,
-          channelLink,
           configRequiredChannel: config.requiredChannel,
           configRequiredChannelName: config.requiredChannelName
         });
         
         const messageText = 
           `⚠️ <b>Для игры требуется подписка на наш канал!</b>\n\n` +
-          `📢 Подпишитесь на канал: <a href="${channelLink}"><b>${channelName}</b></a>\n\n` +
+          `📢 Подпишитесь на канал: <a href="${channelUrl}"><b>${channelName}</b></a>\n\n` +
           `После подписки используйте команду /start еще раз.`;
         
         console.log(`[/start] Message text:`, messageText);
+        console.log(`[/start] Button URL:`, channelUrl);
         
         await ctx.reply(messageText,
           {
@@ -182,7 +183,7 @@ if (config.telegramBotToken) {
                 [
                   {
                     text: '📢 Подписаться на канал',
-                    url: `https://t.me/${channelUrl}`
+                    url: channelUrl
                   }
                 ],
                 [
@@ -319,17 +320,26 @@ if (config.telegramBotToken) {
         await ctx.reply('✅ Отлично! Вы подписаны на канал. Теперь используйте команду /start для начала игры!');
       } else {
         // Всегда используем правильный username канала для отображения, даже если в конфиге указан ID
+        const channelUsername = 'colizeum_kamensk_uralskiy'; // Всегда используем правильный username
         const channelDisplay = '@colizeum_kamensk_uralskiy';
-        const channelUrl = 'colizeum_kamensk_uralskiy';
+        const channelUrl = `https://t.me/${channelUsername}`;
         // Всегда используем хардкодное название, чтобы не зависеть от конфига
         const channelName = 'COLIZEUM Каменск-Уральский | Киберспортивный клуб';
-        const channelLink = `https://t.me/${channelUrl}`;
+        
+        console.log(`[check_subscription] Sending subscription message:`, {
+          channelName,
+          channelDisplay,
+          channelUsername,
+          channelUrl
+        });
         
         const messageText = 
           `❌ Вы еще не подписаны на канал.\n\n` +
           `Пожалуйста, подпишитесь на канал:\n` +
-          `📢 <a href="${channelLink}"><b>${channelName}</b></a>\n\n` +
+          `📢 <a href="${channelUrl}"><b>${channelName}</b></a>\n\n` +
           `Затем нажмите кнопку "✅ Я подписался" еще раз.`;
+        
+        console.log(`[check_subscription] Button URL:`, channelUrl);
         
         await ctx.reply(messageText,
           {
@@ -339,7 +349,7 @@ if (config.telegramBotToken) {
                 [
                   {
                     text: '📢 Подписаться на канал',
-                    url: `https://t.me/${channelUrl}`
+                    url: channelUrl
                   }
                 ],
                 [
